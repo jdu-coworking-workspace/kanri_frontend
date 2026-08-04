@@ -1,0 +1,193 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+html {
+  transition: background-color 0.3s ease;
+}
+
+body {
+  @apply bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100;
+}
+
+
+@layer base {
+  /* -----------------------------------------------------------
+     1. Text Selection (Matnni belgilash)
+     STONIX uslubi: Oltin fon va To'q qora matn
+  ----------------------------------------------------------- */
+  ::selection {
+    background-color: rgba(204, 163, 82, 0.9); /* stonix-gold 90% shaffoflikda */
+    color: #1A1A1A; /* stonix-dark matn rangi */
+  }
+
+  /* Firefox uchun alohida qoida (shart bo'lmasa ham yaxshi) */
+  ::-moz-selection {
+    background-color: rgba(204, 163, 82, 0.9);
+    color: #1A1A1A;
+  }
+
+  /* -----------------------------------------------------------
+     2. Custom Scrollbar (Skrollbar)
+     STONIX uslubi: Minimalist, To'q fonda Oltin chiziq
+  ----------------------------------------------------------- */
+  /* Skrollbarning umumiy kengligi */
+  ::-webkit-scrollbar {
+    width: 6px; /* Juda ingichka, nafis chiziq */
+    height: 6px; /* Gorizontal skroll uchun */
+  }
+
+  /* Skrollbarning yo'li (treki) */
+  ::-webkit-scrollbar-track {
+    background: #1A1A1A; /* stonix-dark fon */
+    border-left: 1px solid rgba(255, 255, 255, 0.03); /* Zo'rg'a ko'rinadigan chegara */
+  }
+
+  /* Skrollbarning harakatlanuvchi qismi (thumb) */
+  ::-webkit-scrollbar-thumb {
+    background: #CCA352; /* stonix-gold rangi */
+    border-radius: 0; /* Burchaklari o'tkir, arxitektura uslubida */
+    transition: background 0.3s ease;
+  }
+
+  /* Sichqoncha ustiga borganda skrollbar rangi o'zgarishi */
+  ::-webkit-scrollbar-thumb:hover {
+    background: #E6B85C; /* Oltin rangning ochroq varianti */
+  }
+
+  /* Firefox uchun minimalist skrollbar (webkit kabi moslashuvchan emas) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #CCA352 #1A1A1A;
+  }
+}
+
+
+.container{
+  max-width:1320px;
+  margin:0 auto;
+  padding:0 20px;
+}
+
+@media screen and (min-width:1460px){
+  .container{
+    padding:0;
+  }
+}
+
+/* Asosiy konteyner */
+.html__content {
+  width: 100%;
+  line-height: 1.7;
+  color: inherit;
+  /* So'zlarni to'g'ri ko'chirish va joylash */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  letter-spacing: 0.01em;
+}
+
+/* Matn elementlari */
+.html__content p {
+  margin-bottom: 1.5rem;
+}
+
+.html__content h1, 
+.html__content h2, 
+.html__content h3, 
+.html__content h4 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.02em; /* Sarlavhalar uchun siqilganroq */
+}
+
+/* Jadvallarni boshqarish (Eng muhim qismi) */
+.html__content table {
+  width: 100% !important;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  min-width:100% !important;
+  font-size: 0.95rem;
+  display: block; /* Mobil uchun */
+  overflow-x: auto; /* Agar sig'masa scroll chiqadi */
+}
+.html__content table thead, .html__content table tbody , .html__content table tr {
+   display: table;
+   width: 100%;
+   table-layout: fixed; /* Ustunlar teng bo'lishi uchun */
+  min-width:100% !important;
+  width:100% !important;
+}
+
+.html__content table th,
+.html__content table td {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(156, 163, 175, 0.3); /* Transparent-ish border */
+  text-align: left;
+}
+
+.html__content table th {
+  background-color: rgba(156, 163, 175, 0.1);
+  font-weight: 600;
+}
+
+/* Rasmlarni moslashuvchan qilish */
+.html__content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+/* Listlar (Ro'yxatlar) */
+.html__content ul, 
+.html__content ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.html__content li {
+  display:list-item;
+  list-style-type: disc; /* Oddiy nuqta */
+  margin-bottom: 0.5rem;
+}
+
+/* Code bloklari uchun (agar bo'lsa) */
+.html__content pre, 
+.html__content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background-color: rgba(156, 163, 175, 0.1);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+}
+
+/* Havolalar (Links) */
+.html__content a {
+  color: #3b82f6; /* Ko'k rang yoki saytingiz brend rangi */
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Dark mode uchun qo'shimcha (ixtiyoriy) */
+.dark .html__content {
+  color: #cbd5e1; /* slate-300 */
+}
+
+.html__content iframe{
+  width:100% !important;
+  height:300px !important;
+}
+
+@media screen and (min-width:768px){
+  .html__content iframe{
+    height:600px !important;
+  }
+}
