@@ -59,15 +59,39 @@ module.exports = {
         sans: ["Plus Jakarta Sans", "Inter", "sans-serif"],
       },
       colors: {
+        // CoWork Management Design System
+        kanri: {
+          bg: '#F8F9FA',
+          surface: '#FFFFFF',
+          border: '#E5E7EB',
+          'border-focus': '#1F2937',
+        },
+        brand: {
+          primary: '#1F2937',
+          secondary: '#6B7280',
+          accent: '#3B82F6',
+        },
+        tag: {
+          trial: '#DBEAFE',
+          'trial-text': '#1D4ED8',
+          active: '#D1FAE5',
+          'active-text': '#059669',
+          complete: '#FEF3C7',
+          'complete-text': '#D97706',
+        },
+        status: {
+          online: '#10B981',
+          recording: '#EF4444',
+        },
         // Luxury & Cyber palitrasi
         cyber: {
           light: '#3b82f6',
           dark: '#6366f1',
-          accent: '#8b5cf6', // Violet qo'shildi (Premium ko'rinish uchun)
+          accent: '#8b5cf6',
         },
         primary: {
           DEFAULT: "#0A1D37",
-          dark: "#020617", // O'ta quyuq Luxury fon
+          dark: "#020617",
         },
         secondary: "#1E4174",
         concrete: "#8E9196",
