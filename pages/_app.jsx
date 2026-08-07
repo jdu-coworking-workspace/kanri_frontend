@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import store from "../redux/store/store";
 import { Layout } from "../components";
+import AuthLayout from "../components/Layout/AuthLayout";
 import uz from "../lang/uz.json";
 import en from "../lang/en.json";
 import ru from "../lang/ru.json";
@@ -30,10 +31,12 @@ export default function App({ Component, pageProps }) {
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(false);
 
+  // Auth sahifalarni aniqlash (layout="auth" yoki Component.layout === "auth")
+  const isAuthPage = Component.layout === "auth";
+
   useEffect(() => {
-    // Tizim rangini tekshirish yoki localStorage'dan olish
-    const isDark = localStorage.getItem("theme") === "dark" ||
-      (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    // Light mode-ni default qilish (faqat localStorage'da 'dark' deb belgilangan bo'lsagina dark bo'ladi)
+    const isDark = localStorage.getItem("theme") === "dark";
 
     setDarkMode(isDark);
     if (isDark) {
@@ -62,6 +65,31 @@ export default function App({ Component, pageProps }) {
     }
   }, [router]);
 
+  // Auth sahifalar uchun alohida layout
+  const renderContent = () => {
+    if (isAuthPage) {
+      return (
+        <AuthLayout>
+          <Component {...pageProps} />
+        </AuthLayout>
+      );
+    }
+
+    return (
+      <Layout>
+        <SWRConfig
+          value={{
+            revalidateOnFocus: false,
+            dedupingInterval: 10000,
+            shouldRetryOnError: false,
+          }}
+        >
+          <Component {...pageProps} />
+        </SWRConfig>
+      </Layout>
+    );
+  };
+
   return (
     <Provider store={store}>
       <IntlProvider
@@ -76,17 +104,7 @@ export default function App({ Component, pageProps }) {
             baseColor={darkMode ? "#1e293b" : "#ebebeb"}
             highlightColor={darkMode ? "#334155" : "#f5f5f5"}
           >
-            <Layout>
-              <SWRConfig
-                value={{
-                  revalidateOnFocus: false,
-                  dedupingInterval: 10000,
-                  shouldRetryOnError: false,
-                }}
-              >
-                <Component {...pageProps} />
-              </SWRConfig>
-            </Layout>
+            {renderContent()}
             <ToastContainer
               position="top-right"
               autoClose={3000}

@@ -3,6 +3,7 @@ export { default as Button } from './Button/Button';
 
 // Inputs
 export { default as BaseInput } from './Input/BaseInput';
+export { default as PasswordInput } from './Input/PasswordInput';
 export { default as SearchInput } from './Input/SearchInput';
 export { default as DateInput } from './Input/DateInput';
 
