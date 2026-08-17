@@ -1,8 +1,8 @@
-import React from "react";
-import { Calendar, MoreHorizontal, Plus } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Calendar, MoreHorizontal, Plus, Edit2, Trash2 } from "lucide-react";
+import Image from "next/image";
 import Tag from "../Tag/Tag";
 import Avatar from "../Avatar/Avatar";
-import Image from "next/image";
 
 const ProjectCard = ({
   title,
@@ -11,111 +11,159 @@ const ProjectCard = ({
   students = [],
   maxVisibleStudents = 4,
   totalSlots = 8,
-  onMenuClick,
+  onEdit,
+  onDelete,
+  onAddStudent,
   className = "",
   coverImage,
 }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
   const visibleStudents = students.slice(0, maxVisibleStudents);
-  const emptySlots = Math.max(0, totalSlots - visibleStudents.length);
+  const emptySlotsCount = Math.max(0, totalSlots - visibleStudents.length);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div
-      className={`flex flex-col bg-kanri-surface rounded-[24px] overflow-hidden border border-kanri-border relative ${className}`}
-    >
-      {/* Top Background Section (Curve simulation or Cover Image) */}
-      <div className="relative h-24 bg-kanri-bg w-full">
-        {coverImage && (
+    <div className={`relative w-full select-none pt-[60px] ${className}`}>
+      {/* 1. Cover Image */}
+      <div className="absolute top-0 left-0 w-full h-[140px] rounded-t-[20px] overflow-hidden z-0 after:absolute after:w-full after:h-full after:top-0 after:left-0 after:bg-black/20">
+        {coverImage ? (
           <Image
             src={coverImage}
             alt="Cover"
-            layout="fill"
-            objectFit="cover"
+            fill
+            className="object-cover"
+            priority
           />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-gray-700 to-gray-900" />
         )}
-        {/* Overlay gradient to darken top for tags */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-transparent" />
-        
-        {/* Tags */}
-        <div className="absolute top-4 left-4 flex gap-2">
-          {tags.map((tag, idx) => (
-            <Tag key={idx} variant={tag.variant}>
-              {tag.label}
-            </Tag>
-          ))}
-        </div>
+      </div>
 
-        {/* Menu Button */}
+      {/* 2. Top Tags */}
+      <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
+        {tags.map((tag, idx) => (
+          <Tag key={idx} variant={tag.variant}>
+            {tag.label}
+          </Tag>
+        ))}
+      </div>
+
+      {/* 3. Dropdown Menu */}
+      <div className="absolute top-[60px] right-1 z-30" ref={menuRef}>
         <button
-          onClick={onMenuClick}
-          className="absolute top-4 right-4 bg-white/90 hover:bg-white text-brand-primary p-2 rounded-full shadow-sm transition-colors"
+          onClick={() => setIsMenuOpen((prev) => !prev)}
+          className="w-[38px] h-8 bg-white dark:bg-gray-800 text-gray-700 dark:text-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-transform active:scale-95"
         >
           <MoreHorizontal className="w-5 h-5" />
         </button>
 
-        {/* Curved white overlay effect - using simple rounded bottom */}
-        <div className="absolute -bottom-6 left-0 right-0 h-12 bg-kanri-surface rounded-t-[24px]"></div>
+        {isMenuOpen && (
+          <div className="absolute right-0 mt-2 w-36 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                onEdit?.();
+              }}
+              className="w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+            >
+              <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+              編集
+            </button>
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                onDelete?.();
+              }}
+              className="w-full px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center gap-2 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-red-500" />
+              削除
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-col p-5 pt-0 z-10 flex-grow">
-        {/* Date Range */}
-        <div className="flex items-center gap-1.5 text-brand-secondary text-xs font-medium mb-3">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>{dateRange}</span>
+      {/* 5. Kontent (SVG ichidagi bo'sh joyga to'g'rilangan pad bilan) */}
+      <div
+        className="bg-[url('/images/project-bg.png')] dark:bg-[url('/images/project-dark-bg.png')] bg-cover rounded-2xl w-full flex flex-col justify-between pointer-events-auto relative z-10 h-[271px]"
+      >
+        <div className="px-3 pt-3 pb-3">
+          {/* Sana */}
+          <div className="flex items-center gap-1.5 text-[#456272] dark:text-gray-400 text-xs font-medium mb-1">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{dateRange}</span>
+          </div>
+
+          {/* Sarlavha */}
+          <h3 className="text-kanri-primary dark:text-white text-base font-bold line-clamp-1 mb-3">
+            {title}
+          </h3>
+
+          {/* Studentlar ro'yxati */}
+          <div className="grid grid-cols-4 gap-2">
+            {visibleStudents.map((student, idx) => (
+              <div key={idx} className="flex flex-col items-center">
+                <Avatar
+                  src={student.avatar}
+                  alt={student.name}
+                  size="lg"
+                  status={student.status}
+                  isLeader={student.isLeader}
+                  groupCount={student.groupCount}
+                  countryFlag={student.countryFlag}
+                />
+                <div className="text-center w-full mt-1">
+                  <p className="text-[9px] font-bold text-[#122B31] dark:text-gray-200 leading-3">
+                    {student.name}
+                  </p>
+                  <div className="w-full overflow-hidden whitespace-nowrap leading-3 h-4">
+                    <p
+                      className="inline-block text-[9px] text-[#5C6B82] dark:text-gray-400 "
+                      style={{
+                        animation: 'marquee 10s linear infinite',
+                        display: 'inline-block',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      <style>{`
+                      @keyframes marquee {
+                        0% { transform: translateX(100%); }
+                        100% { transform: translateX(-100%); }
+                      }
+                    `}</style>
+                      {student.katakana}
+                    </p>
+                  </div>
+                  <p className="text-[8px] text-[#8897AD] dark:text-gray-500 truncate leading-tight">
+                    {student.id}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Title */}
-        <h3 className="text-brand-primary text-[17px] font-bold mb-5 line-clamp-2">
-          {title}
-        </h3>
-
-        {/* Student Grid */}
-        <div className="grid grid-cols-4 gap-3 mt-auto">
-          {visibleStudents.map((student, idx) => (
-            <div key={idx} className="flex flex-col items-center">
-              <div className="relative mb-2 w-full pt-[100%] rounded-[14px] overflow-hidden">
-                 {student.avatar ? (
-                    <Image src={student.avatar} layout="fill" objectFit="cover" alt={student.name} />
-                 ) : (
-                    <div className="absolute inset-0 bg-gray-200" />
-                 )}
-                 {/* Badges */}
-                 {student.roleBadge && (
-                    <div className={`absolute bottom-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${
-                      student.roleBadge === 'S' ? 'bg-yellow-400' :
-                      student.roleBadge === 'A' ? 'bg-red-500' :
-                      student.roleBadge === 'B' ? 'bg-green-500' : 'bg-gray-400'
-                    }`}>
-                      {student.roleBadge}
-                    </div>
-                 )}
-                 {student.isLeader && (
-                    <div className="absolute bottom-1 left-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center text-brand-primary">
-                       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                    </div>
-                 )}
-                 {student.countBadge && (
-                    <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
-                       +{student.countBadge}
-                    </div>
-                 )}
-              </div>
-              <div className="text-center w-full">
-                <p className="text-[10px] font-bold text-brand-primary truncate w-full">{student.name}</p>
-                <p className="text-[9px] text-brand-secondary truncate w-full mt-0.5">{student.katakana}</p>
-                <p className="text-[9px] text-brand-secondary/70 truncate w-full">{student.studentId}</p>
-              </div>
-            </div>
-          ))}
-
-          {/* Empty Slots */}
-          {Array.from({ length: emptySlots }).map((_, idx) => (
-            <div key={`empty-${idx}`} className="flex flex-col items-center">
-              <button className="w-full pt-[100%] rounded-[14px] border border-dashed border-gray-300 relative hover:bg-gray-50 hover:border-gray-400 transition-colors group">
-                 <div className="absolute inset-0 flex items-center justify-center text-gray-400 group-hover:text-gray-500">
-                    <Plus className="w-6 h-6" />
-                 </div>
-              </button>
-            </div>
+        {/* Empty Slots (+) - 64x64px o'lchamda */}
+        <div className="grid grid-cols-4 gap-2 px-3 pb-3">
+          {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+            <button
+              key={`empty-${idx}`}
+              onClick={onAddStudent}
+              className="h-[64px] shrink-0 rounded-[12px] border border-dashed border-[#D0D5DD] dark:border-gray-700 bg-[#F9FAFB] dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-[#98A2B3] dark:text-gray-400 transition-colors group"
+            >
+              <Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </button>
           ))}
         </div>
       </div>

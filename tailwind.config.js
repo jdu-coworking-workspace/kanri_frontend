@@ -56,7 +56,7 @@ module.exports = {
       },
       fontFamily: {
         // Luxury dizayn uchun Sans-serif shriftini asosiy qilib belgilaymiz
-        sans: ["Plus Jakarta Sans", "Inter", "sans-serif"],
+        sans: ["Noto Sans JP", "Inter", "sans-serif"],
       },
       colors: {
         // CoWork Management Design System
@@ -65,6 +65,10 @@ module.exports = {
           surface: '#FFFFFF',
           border: '#E5E7EB',
           'border-focus': '#1F2937',
+          primary: "#122B31",
+          secondary: "#8897AD",
+          third: "#456272",
+          'settings-border': "#D4D7E3"
         },
         brand: {
           primary: '#1F2937',
@@ -72,9 +76,9 @@ module.exports = {
           accent: '#3B82F6',
         },
         tag: {
-          trial: '#DBEAFE',
+          trial: '#0088FF',
           'trial-text': '#1D4ED8',
-          active: '#D1FAE5',
+          active: '#34C759',
           'active-text': '#059669',
           complete: '#FEF3C7',
           'complete-text': '#D97706',
@@ -113,6 +117,7 @@ module.exports = {
         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
         'premium': '0 20px 50px rgba(0, 0, 0, 0.1)',
         'cyber-glow': '0 0 20px rgba(59, 130, 246, 0.5)',
+        'soft-sm': '0 0 15px 0 rgba(0, 0, 0, 0.03)',
       },
       borderRadius: {
         "2xl": "20px",
