@@ -68,12 +68,12 @@ body {
 
 
 .container{
-  max-width:1320px;
+  max-width:1660px;
   margin:0 auto;
   padding:0 20px;
 }
 
-@media screen and (min-width:1460px){
+@media screen and (min-width:1680px){
   .container{
     padding:0;
   }
@@ -189,5 +189,18 @@ body {
 @media screen and (min-width:768px){
   .html__content iframe{
     height:600px !important;
+  }
+}
+
+@layer utilities {
+  /* Chrome, Safari va Opera uchun scrollbarni yashirish */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* IE, Edge va Firefox uchun scrollbarni yashirish */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE va Edge */
+    scrollbar-width: none;  /* Firefox */
   }
 }

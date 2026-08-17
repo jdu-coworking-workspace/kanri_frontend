@@ -1,1 +1,9 @@
-{}
+{
+    "学生フィルター": "Talaba saralash",
+    "氏名・フリガナ・学籍番号": "Talaba・Furigana・Talaba id",
+    "名前で絞り込み": "Nomi bo'yicha filterlash",
+    "学生名で絞り込み": "Talaba nomi bo'yicha filtrlash",
+    "選ぶ...": "Tanlang...",
+    "状態": "Davlat",
+    "種別": "Turi"
+}

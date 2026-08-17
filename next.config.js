@@ -2,8 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   i18n: {
-    defaultLocale: 'en',
-    locales: ['en', 'ru', 'uz'],
+    locales: ['en', 'ru', 'uz', 'jp'],
+    defaultLocale: 'jp',
   },
   compiler: {
     removeConsole: {

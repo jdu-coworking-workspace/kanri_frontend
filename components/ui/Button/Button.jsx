@@ -56,9 +56,9 @@ const Button = ({
       {...props}
     >
       {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-      {!loading && leftIcon && <span className="mr-2 flex items-center">{leftIcon}</span>}
+      {!loading && leftIcon && <span className="mr-1" dangerouslySetInnerHTML={{ __html: leftIcon }} />}
       {children}
-      {!loading && rightIcon && <span className="ml-2 flex items-center">{rightIcon}</span>}
+      {!loading && rightIcon && <span className="ml-1 flex items-center">{rightIcon}</span>}
     </button>
   );
 };
