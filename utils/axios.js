@@ -1,9 +1,10 @@
 import axios from "axios";
 
-const baseURL = process.env.NEXT_PUBLIC_BASE_API_URL;
+const baseURL = process.env.NEXT_PUBLIC_BASE_API_URL || "http://localhost:8000/api/v1/";
 
 const defaultAxios = axios.create({
     baseURL,
+    withCredentials: true,
     headers: {
         Accept: "application/json",
     },
@@ -11,6 +12,7 @@ const defaultAxios = axios.create({
 
 export const authAxios = axios.create({
     baseURL,
+    withCredentials: true,
     headers: {
         Accept: "application/json",
     },

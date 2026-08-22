@@ -1,50 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useForm } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
 import Seo from "@/components/Seo/Seo";
 import { Button, BaseInput } from "@/components/ui";
+import { forgotPasswordUser, clearAuthError } from "@/redux/slice/auth";
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
+  const [submittedEmail, setSubmittedEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleChange = (e) => {
-    setEmail(e.target.value);
-    if (error) setError("");
-  };
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: "",
+    },
+  });
 
-  const validate = () => {
-    if (!email.trim()) {
-      return "メールアドレスを入力してください。";
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return "正しいメールアドレスを入力してください。";
-    }
-    return "";
-  };
+  useEffect(() => {
+    dispatch(clearAuthError());
+  }, [dispatch]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // TODO: API call
-      console.log("Forgot password:", email);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+  const onSubmit = async (data) => {
+    setSubmittedEmail(data.email);
+    const result = await dispatch(forgotPasswordUser(data));
+    if (forgotPasswordUser.fulfilled.match(result) || result) {
       setIsSubmitted(true);
-    } catch (err) {
-      console.error("Forgot password error:", err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -85,18 +73,28 @@ export default function ForgotPasswordPage() {
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium">
+                    {typeof error === "string" ? error : "送信中にエラーが発生しました。"}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                   {/* Email */}
                   <BaseInput
                     id="forgot-email"
                     label="メールアドレス"
-                    name="email"
                     type="email"
                     placeholder="Example@email.com"
-                    value={email}
-                    onChange={handleChange}
-                    error={error}
                     autoComplete="email"
+                    error={errors.email?.message}
+                    {...register("email", {
+                      required: "メールアドレスを入力してください。",
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                        message: "正しいメールアドレスを入力してください。",
+                      },
+                    })}
                   />
 
                   {/* Submit Button */}
@@ -105,7 +103,7 @@ export default function ForgotPasswordPage() {
                     variant="primary"
                     size="lg"
                     fullWidth
-                    isLoading={isLoading}
+                    isLoading={loading}
                   >
                     リセットリンクを送信
                   </Button>
@@ -157,7 +155,7 @@ export default function ForgotPasswordPage() {
                   メールを送信しました ✉️
                 </h1>
                 <p className="text-[15px] text-[#6B7280] leading-relaxed mb-8">
-                  <span className="font-semibold text-[#0A1D37]">{email}</span>
+                  <span className="font-semibold text-[#0A1D37]">{submittedEmail}</span>
                   <br />
                   にパスワードリセットリンクを送信しました。
                   <br />
@@ -171,7 +169,8 @@ export default function ForgotPasswordPage() {
                     fullWidth
                     onClick={() => {
                       setIsSubmitted(false);
-                      setEmail("");
+                      setSubmittedEmail("");
+                      reset({ email: "" });
                     }}
                   >
                     別のメールアドレスを試す

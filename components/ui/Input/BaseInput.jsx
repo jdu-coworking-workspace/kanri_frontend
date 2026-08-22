@@ -43,7 +43,7 @@ const BaseInput = forwardRef(
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3 text-[#8897AD] flex items-center justify-center pointer-events-none">
+            <div className="absolute right-3 text-[#8897AD] flex items-center justify-center">
               {rightIcon}
             </div>
           )}
