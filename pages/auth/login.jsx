@@ -1,63 +1,43 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/router";
+import { useForm } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
 import Seo from "@/components/Seo/Seo";
 import { Button, BaseInput, PasswordInput } from "@/components/ui";
+import { loginUser, clearAuthError } from "@/redux/slice/auth";
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
   });
-  const [errors, setErrors] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // Xatoni tozalash
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+  useEffect(() => {
+    dispatch(clearAuthError());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard");
     }
-  };
+  }, [isAuthenticated, router]);
 
-  const validate = () => {
-    const newErrors = {};
-
-    if (!formData.email.trim()) {
-      newErrors.email = "メールアドレスを入力してください。";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "正しいメールアドレスを入力してください。";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "パスワードを入力してください。";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "パスワードは8文字以上で入力してください。";
-    }
-
-    return newErrors;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // TODO: API call
-      console.log("Login:", formData);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    } catch (error) {
-      console.error("Login error:", error);
-    } finally {
-      setIsLoading(false);
+  const onSubmit = async (data) => {
+    const result = await dispatch(loginUser(data));
+    if (loginUser.fulfilled.match(result)) {
+      router.push("/dashboard");
     }
   };
 
@@ -96,30 +76,44 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium">
+                {typeof error === "string" ? error : "ログイン中にエラーが発生しました。"}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
               {/* Email */}
               <BaseInput
                 id="login-email"
                 label="メールアドレス"
-                name="email"
                 type="email"
                 placeholder="Example@email.com"
-                value={formData.email}
-                onChange={handleChange}
-                error={errors.email}
                 autoComplete="email"
+                error={errors.email?.message}
+                {...register("email", {
+                  required: "メールアドレスを入力してください。",
+                  pattern: {
+                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: "正しいメールアドレスを入力してください。",
+                  },
+                })}
               />
 
               {/* Password */}
               <PasswordInput
                 id="login-password"
                 label="パスワード"
-                name="password"
                 placeholder="パスワードは8文字以上で入力してください。"
-                value={formData.password}
-                onChange={handleChange}
-                error={errors.password}
                 autoComplete="current-password"
+                error={errors.password?.message}
+                {...register("password", {
+                  required: "パスワードを入力してください。",
+                  minLength: {
+                    value: 8,
+                    message: "パスワードは8文字以上で入力してください。",
+                  },
+                })}
               />
 
               {/* Forgot Password */}
@@ -138,7 +132,7 @@ export default function LoginPage() {
                 variant="primary"
                 size="lg"
                 fullWidth
-                isLoading={isLoading}
+                isLoading={loading}
               >
                 ログイン
               </Button>
