@@ -21,3 +21,4 @@ export { default as ProjectCard } from './ProjectCard/ProjectCard';
 export { default as Tag } from './Tag/Tag';
 export { default as Avatar } from './Avatar/Avatar';
 export { default as Modal } from './Modal/Modal';
+export { default as ConfirmModal } from './Modal/ConfirmModal';

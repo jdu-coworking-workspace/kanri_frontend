@@ -19,18 +19,8 @@ export const authAxios = axios.create({
     timeout: 20000,
 });
 
-authAxios.interceptors.request.use(
-    (config) => {
-        if (typeof window !== "undefined") {
-            const accessToken = localStorage.getItem("access_cads");
-            if (accessToken) {
-                config.headers.Authorization = `Bearer ${accessToken}`;
-            }
-        }
-        return config;
-    },
-    (error) => Promise.reject(error),
-);
+// Interceptors are not needed for adding the Authorization header
+// since we rely on HttpOnly cookies which are sent automatically.
 
 authAxios.interceptors.response.use(
     (response) => response,

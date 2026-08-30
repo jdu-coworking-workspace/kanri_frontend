@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useIntl } from 'react-intl'
 
 const links = [
     {
@@ -38,6 +39,7 @@ const links = [
 
 export default function MenuTabs() {
     const router = useRouter()
+    const intl = useIntl()
 
     return (
         <div className="container">
@@ -65,7 +67,7 @@ export default function MenuTabs() {
                             <span className="flex items-center justify-center">
                                 {link.icon}
                             </span>
-                            <span>{link.name}</span>
+                            <span>{intl.formatMessage({ id: link.name })}</span>
                         </Link>
                     )
                 })}

@@ -51,7 +51,7 @@ const BaseSelect = forwardRef(
     };
 
     const variantClasses = {
-      default: "bg-kanri-surface border-kanri-border text-brand-primary dark:bg-gray-800 dark:border-gray-700",
+      default: "bg-kanri-surface border-kanri-border text-brand-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white",
       modal: "bg-[#F5F8FA] border-[#E4E9EE] text-[#122B31] dark:bg-gray-800 dark:border-gray-700 dark:text-white",
     };
 
@@ -71,18 +71,18 @@ const BaseSelect = forwardRef(
               } ${disabled ? "opacity-60 cursor-not-allowed" : ""} ${error ? "border-status-recording ring-1 ring-status-recording" : ""
               } ${className}`}
           >
-            <span className={!selectedOption ? "text-[#8897AD]" : ""}>
+            <span className={!selectedOption ? "text-[#8897AD] dark:text-gray-400" : "text-[#122B31] dark:text-white"}>
               {selectedOption ? selectedOption.label : intl.formatMessage({ id: placeholder })}
             </span>
 
             <ChevronDown
-              className={`w-4 h-4 text-[#8897AD] transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"
+              className={`w-4 h-4 text-[#8897AD] dark:text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : "rotate-0"
                 }`}
             />
           </div>
 
           {isOpen && !disabled && (
-            <ul className="absolute z-50 w-full mt-1 max-h-60 overflow-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-1 text-sm transition-all">
+            <ul className="absolute z-50 w-full mt-1 max-h-80 overflow-auto no-scrollbar bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg py-1 text-sm transition-all">
               {options.map((opt) => {
                 const isSelected = opt.value === value;
                 return (

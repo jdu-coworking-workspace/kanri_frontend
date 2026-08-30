@@ -1,23 +1,10 @@
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL;
 
-function getAuthHeader() {
-	if (typeof window !== "undefined") {
-		const token = localStorage.getItem("access_cads");
-		if (token) {
-			return {
-				Authorization: `Bearer ${token}`
-			};
-		}
-	}
-	return {};
-}
-
 // auth fetcher
 function updateOptions(options, auth) {
 	const headers = {
 		Accept: "application/json",
 		...options.headers,
-		...(auth ? getAuthHeader() : {}),
 	};
 
 	// Faqat so'rovda body bo'lsa Content-Type qo'shamiz
@@ -26,6 +13,7 @@ function updateOptions(options, auth) {
 	}
 
 	return {
+		credentials: "include",
 		...options,
 		headers,
 	};

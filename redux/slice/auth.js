@@ -8,9 +8,6 @@ export const loginUser = createAsyncThunk(
       const res = await defaultAxios.post("auth/login", data);
       const userData = res.data?.data?.user || res.data;
 
-      if (typeof window !== "undefined" && res.data?.token) {
-        localStorage.setItem("access_cads", res.data.token);
-      }
 
       return userData;
     } catch (err) {
@@ -44,14 +41,8 @@ export const logoutUser = createAsyncThunk(
   async (__, { rejectWithValue }) => {
     try {
       await authAxios.post("auth/logout");
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("access_cads");
-      }
       return true;
     } catch (err) {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("access_cads");
-      }
       return true;
     }
   }
@@ -91,6 +82,7 @@ const authSlice = createSlice({
     isAuthenticated: false,
     loading: false,
     error: null,
+    initialized: false,
   },
   reducers: {
     logout: (state) => {
@@ -117,6 +109,7 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload;
         state.error = null;
+        state.initialized = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -171,11 +164,13 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload;
         state.loading = false;
+        state.initialized = true;
       })
       .addCase(getMe.rejected, (state) => {
         state.isAuthenticated = false;
         state.user = null;
         state.loading = false;
+        state.initialized = true;
       });
   },
 });
