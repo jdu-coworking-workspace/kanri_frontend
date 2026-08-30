@@ -1,21 +1,60 @@
 import React from "react";
 import Image from "next/image";
+import { useIntl } from "react-intl";
 
 const Avatar = ({
   src,
   alt = "Avatar",
   size = "md",
   status, // "A", "B", "C", "S", "D", "E"
+  workStatus, // "active", "intern", "on_leave"
+  gradDate, // graduation date string or Date
   isLeader = false,
   groupCount,
   countryFlag,
   className = "",
 }) => {
+  const intl = useIntl();
+
   const sizes = {
     sm: "w-8 h-8",
     md: "w-10 h-10",
     lg: "w-16 h-16",
   };
+
+  // Work Status normalization
+  const normalizedWorkStatus = (workStatus || "").toLowerCase();
+  const isIntern = normalizedWorkStatus === "intern" || workStatus === "インターン";
+  const isOnLeave = normalizedWorkStatus === "on_leave" || workStatus === "休職中";
+
+  // Check graduation date (less than 4 months / 122 days remaining)
+  let isNearGraduation = false;
+  if (gradDate) {
+    const gradStr = typeof gradDate === 'string' ? gradDate.replace(/\//g, '-') : gradDate;
+    const grad = new Date(gradStr);
+    if (!isNaN(grad.getTime())) {
+      const today = new Date();
+      const diffTime = grad.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays <= 122) {
+        isNearGraduation = true;
+      }
+    }
+  }
+
+  let borderClass = "border border-kanri-border bg-kanri-bg";
+  let tooltipText = "";
+
+  if (isNearGraduation) {
+    borderClass = "border-2 border-red-500 dark:border-red-500 ring-2 ring-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.7)] bg-kanri-bg";
+    tooltipText = intl.formatMessage({ id: "gradWarningNear" });
+  } else if (isIntern) {
+    borderClass = "border-2 border-amber-400 dark:border-amber-400 ring-2 ring-amber-400/40 shadow-[0_0_10px_rgba(251,191,36,0.6)] bg-kanri-bg";
+    tooltipText = intl.formatMessage({ id: "workStatusIntern" });
+  } else if (isOnLeave) {
+    borderClass = "border-2 border-emerald-400 dark:border-emerald-400 ring-2 ring-emerald-400/40 shadow-[0_0_10px_rgba(52,211,153,0.6)] bg-kanri-bg";
+    tooltipText = intl.formatMessage({ id: "workStatusOnLeave" });
+  }
 
   // Status ranglari va 80% opasiteli shadow stillari
   const statusConfig = {
@@ -49,16 +88,18 @@ const Avatar = ({
   const currentStatus = statusConfig[status?.toUpperCase()];
 
   return (
-    <div className={`relative inline-block ${sizeClass} ${className}`}>
+    <div className={`relative inline-block group ${sizeClass} ${className}`}>
       {/* Asosiy Avatar ramkasi */}
-      <div className="relative w-full h-full overflow-hidden rounded-lg border border-kanri-border bg-kanri-bg">
+      <div className={`relative w-full h-full overflow-hidden rounded-lg transition-all duration-200 ${borderClass}`}>
         {src ? (
           <Image
             src={src}
             alt={alt}
-            layout="fill"
-            objectFit="cover"
+            fill
+            sizes="64px"
+            style={{ objectFit: 'cover' }}
             className="rounded-lg"
+            unoptimized={typeof src === 'string' && (src.startsWith('/media/') || src.startsWith('http'))}
           />
         ) : (
           <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500 font-semibold text-sm">
@@ -66,6 +107,16 @@ const Avatar = ({
           </div>
         )}
       </div>
+
+      {/* Dynamic Hover Tooltip Badge */}
+      {tooltipText && (
+        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex flex-col items-center z-50 transition-opacity duration-150 animate-in fade-in zoom-in-95">
+          <span className="relative z-10 px-2 py-1 text-[10px] font-semibold leading-none text-white whitespace-nowrap bg-gray-900/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-md shadow-lg border border-white/10">
+            {tooltipText}
+          </span>
+          <div className="w-2 h-2 -mt-1 rotate-45 bg-gray-900/90 dark:bg-gray-800/90 border-r border-b border-white/10" />
+        </div>
+      )}
 
       {/* Group Count Badge (Yuqori o'ng burchak) */}
       {groupCount !== undefined && groupCount !== null && (

@@ -2,12 +2,15 @@ import React from "react";
 import Avatar from "../Avatar/Avatar";
 
 const StudentCard = ({
+  id,
   name,
   katakana,
   studentId,
   avatar,
   countryFlag,
   status,
+  workStatus,
+  gradDate,
   onClick,
   className = "",
   isLeader,
@@ -16,6 +19,15 @@ const StudentCard = ({
   return (
     <div
       onClick={onClick}
+      draggable={!!id}
+      onDragStart={(e) => {
+        if (id) {
+          e.dataTransfer.setData("text/plain", JSON.stringify({
+            sourceProjectId: null,
+            studentId: id
+          }));
+        }
+      }}
       className={`flex items-center gap-2 
         bg-[#f5f5f5] dark:bg-gray-800 
         p-2 rounded-lg cursor-pointer 
@@ -28,6 +40,8 @@ const StudentCard = ({
         alt={name}
         size="lg"
         status={status}
+        workStatus={workStatus}
+        gradDate={gradDate}
         countryFlag={countryFlag}
         isLeader={isLeader}
         groupCount={groupCount}

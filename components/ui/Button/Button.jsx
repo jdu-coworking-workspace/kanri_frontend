@@ -10,11 +10,13 @@ const Button = ({
   rightIcon = null,
   disabled = false,
   loading = false,
+  isLoading = false,
   className = "",
   type = "button",
   onClick,
   ...props
 }) => {
+  const isCurrentlyLoading = loading || isLoading;
   const baseStyles =
     "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed";
 
@@ -51,14 +53,14 @@ const Button = ({
     <button
       type={type}
       className={classes}
-      disabled={disabled || loading}
+      disabled={disabled || isCurrentlyLoading}
       onClick={onClick}
       {...props}
     >
-      {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-      {!loading && leftIcon && <span className="mr-1" dangerouslySetInnerHTML={{ __html: leftIcon }} />}
+      {isCurrentlyLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+      {!isCurrentlyLoading && leftIcon && <span className="mr-1" dangerouslySetInnerHTML={{ __html: leftIcon }} />}
       {children}
-      {!loading && rightIcon && <span className="ml-1 flex items-center">{rightIcon}</span>}
+      {!isCurrentlyLoading && rightIcon && <span className="ml-1 flex items-center">{rightIcon}</span>}
     </button>
   );
 };

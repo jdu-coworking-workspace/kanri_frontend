@@ -1,5 +1,6 @@
-import { Provider } from "react-redux";
+import { Provider, useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/router";
+import { getMe } from "../redux/slice/auth";
 import store from "../redux/store/store";
 import { Layout } from "../components";
 import AuthLayout from "../components/Layout/AuthLayout";
@@ -33,8 +34,32 @@ const messages = { ru, uz, en, jp };
 function AppContent({ Component, pageProps }) {
   const router = useRouter();
   const { isDarkMode } = useTheme(); // Endi bu yerda ishonchli ishlaydi
+  const dispatch = useDispatch();
+  const { isAuthenticated, initialized } = useSelector((state) => state.auth);
 
   const isAuthPage = Component.layout === "auth";
+  const isProtectedPage = router.pathname.startsWith("/dashboard");
+  const isRootPage = router.pathname === "/";
+
+  useEffect(() => {
+    dispatch(getMe());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!initialized) return;
+
+    if (isProtectedPage && !isAuthenticated) {
+      router.push("/auth/login");
+    } else if (isAuthPage && isAuthenticated) {
+      router.push("/dashboard");
+    } else if (isRootPage) {
+      if (isAuthenticated) {
+        router.push("/dashboard");
+      } else {
+        router.push("/auth/login");
+      }
+    }
+  }, [initialized, isAuthenticated, isAuthPage, isProtectedPage, isRootPage, router]);
 
   useEffect(() => {
     try {
@@ -56,6 +81,15 @@ function AppContent({ Component, pageProps }) {
       console.error("Error initializing collapse:", error);
     }
   }, [router]);
+
+  if (!initialized) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f5] dark:bg-gray-900 transition-colors duration-300">
+        <div className="w-12 h-12 rounded-full border-[3px] border-gray-200 dark:border-gray-800 border-t-kanri-primary animate-spin mb-4"></div>
+        <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">読み込み中...</p>
+      </div>
+    );
+  }
 
   const renderContent = () => {
     if (isAuthPage) {
