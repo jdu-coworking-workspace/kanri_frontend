@@ -2,6 +2,7 @@ import Link from 'next/link';
 import React from 'react';
 import HourlyBlock from '../Layout/details/hourly-block';
 import DetailedBtns from '../Layout/details/detailed-btns';
+import MobileMenu from '../Layout/details/mobile-menu';
 
 const ModernHeader = () => {
   return (
@@ -12,10 +13,16 @@ const ModernHeader = () => {
             COWORK 管理
           </span>
         </Link>
-        <div className="flex gap-3">
+        
+        {/* Mobile View: HourlyBlock + MobileMenu */}
+        <div className="flex lg:hidden items-center gap-2 sm:gap-3">
           <HourlyBlock />
+          <MobileMenu />
         </div>
-        <div className="lg:flex hidden items-center gap-3">
+
+        {/* Desktop View: HourlyBlock + DetailedBtns */}
+        <div className="hidden lg:flex items-center gap-3">
+          <HourlyBlock />
           <DetailedBtns />
         </div>
       </div>

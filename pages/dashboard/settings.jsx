@@ -14,6 +14,7 @@ import { toast } from 'react-toastify';
 
 function RoleSelectDropdown({ value, onChange, disabled, intl }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [coords, setCoords] = useState({ top: 0, left: 0, width: 176 });
     const dropdownRef = useRef(null);
 
     useEffect(() => {
@@ -22,9 +23,38 @@ function RoleSelectDropdown({ value, onChange, disabled, intl }) {
                 setIsOpen(false);
             }
         };
+        const handleScroll = () => {
+            if (isOpen) setIsOpen(false);
+        };
+        
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        if (isOpen) {
+            window.addEventListener('scroll', handleScroll, true); // Capture phase to catch all scroll events
+            window.addEventListener('resize', handleScroll);
+        }
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('scroll', handleScroll, true);
+            window.removeEventListener('resize', handleScroll);
+        };
+    }, [isOpen]);
+
+    const handleToggle = () => {
+        if (disabled) return;
+        if (!isOpen && dropdownRef.current) {
+            const rect = dropdownRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const dropdownHeight = 100; // approximate height
+            
+            setCoords({
+                top: spaceBelow < dropdownHeight ? rect.top - dropdownHeight - 6 : rect.bottom + 6,
+                left: rect.left,
+                width: 176 // w-44
+            });
+        }
+        setIsOpen(!isOpen);
+    };
 
     const roleConfigs = {
         staff: {
@@ -46,7 +76,7 @@ function RoleSelectDropdown({ value, onChange, disabled, intl }) {
             <button
                 type="button"
                 disabled={disabled}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold transition-all duration-200 shadow-sm ${currentConfig.badgeClass} ${
                     disabled ? 'opacity-80 cursor-default hover:bg-transparent' : 'cursor-pointer active:scale-[0.98]'
                 }`}
@@ -59,7 +89,10 @@ function RoleSelectDropdown({ value, onChange, disabled, intl }) {
             </button>
 
             {isOpen && !disabled && (
-                <div className="absolute left-0 mt-1.5 w-44 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
+                <div 
+                    className="fixed bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 rounded-2xl shadow-xl py-1.5 z-[9999] animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
+                    style={{ top: coords.top, left: coords.left, width: coords.width }}
+                >
                     {Object.entries(roleConfigs).map(([roleKey, cfg]) => {
                         const isSelected = roleKey === value;
                         return (
