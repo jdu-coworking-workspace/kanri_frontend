@@ -1,0 +1,86 @@
+name: Build va EC2 ga deploy
+
+# NEXT_PUBLIC_* build vaqtida kodga yoziladi. Shuning uchun domen
+# NEXT_PUBLIC_BASE_API_URL variable ida turadi. Domen o'zgarsa variable ni
+# yangilab, workflow ni qaytadan ishga tushirish kerak.
+
+on:
+  push:
+    branches: [mvp]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # OIDC orqali AWS role ni olish uchun
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20" # serverdagi Node bilan bir xil
+          cache: npm
+
+      # NODE_ENV=production qo'yilmaydi, aks holda devDependencies
+      # o'rnatilmaydi va build yiqiladi.
+      - run: npm ci
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_BASE_API_URL: ${{ vars.NEXT_PUBLIC_BASE_API_URL }}
+        run: |
+          test -n "$NEXT_PUBLIC_BASE_API_URL" || {
+            echo "NEXT_PUBLIC_BASE_API_URL variable o'rnatilmagan"; exit 1; }
+          npm run build
+
+      # node_modules kirmaydi — server o'zi `npm ci --omit=dev` qiladi,
+      # shunda sharp kabi native paketlar to'g'ri arxitekturada bo'ladi.
+      - name: Artefakt
+        run: |
+          tar -czf frontend.tar.gz \
+            .next public package.json package-lock.json \
+            next.config.js ecosystem.config.js
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: S3 ga yuklash
+        run: |
+          aws s3 cp frontend.tar.gz \
+            "s3://${{ vars.DEPLOY_BUCKET }}/deploy/frontend-${{ github.sha }}.tar.gz"
+
+      # SSH ishlatilmaydi — 22-port internetga ochiq bo'lmasligi uchun.
+      - name: EC2 da chiqarish
+        run: |
+          CMD_ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
+            --document-name AWS-RunShellScript \
+            --comment "frontend ${{ github.sha }}" \
+            --parameters commands="/usr/local/bin/kanri-deploy-frontend.sh deploy/frontend-${{ github.sha }}.tar.gz" \
+            --query Command.CommandId --output text)
+
+          echo "SSM command: $CMD_ID"
+          aws ssm wait command-executed \
+            --command-id "$CMD_ID" \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" || true
+
+          aws ssm get-command-invocation \
+            --command-id "$CMD_ID" \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+            --query '{status:Status,out:StandardOutputContent,err:StandardErrorContent}' \
+            --output text
+
+          STATUS=$(aws ssm get-command-invocation \
+            --command-id "$CMD_ID" \
+            --instance-id "${{ vars.EC2_INSTANCE_ID }}" \
+            --query Status --output text)
+          test "$STATUS" = "Success" || { echo "Deploy status: $STATUS"; exit 1; }

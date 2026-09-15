@@ -12,6 +12,12 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
+      // Production: avatarlar S3 dan keladi.
+      {
+        protocol: 'https',
+        hostname: '**.s3.ap-northeast-1.amazonaws.com',
+      },
+      // Lokal ishlab chiqish: S3_MODE=local bo'lganda backend/media/.
       {
         protocol: 'http',
         hostname: 'localhost',
