@@ -5,8 +5,11 @@ name: Build va EC2 ga deploy
 # yangilab, workflow ni qaytadan ishga tushirish kerak.
 
 on:
-  push:
-    branches: [mvp]
+  # Hozircha auto-deploy o'chirilgan. main ga merge Actions ishga tushirmaydi.
+  # Kerak bo'lganda: GitHub → Actions → "Build va EC2 ga deploy" → Run workflow
+  # yoki quyidagi push triggerni qayta oching.
+  # push:
+  #   branches: [main]
   workflow_dispatch:
 
 concurrency:
