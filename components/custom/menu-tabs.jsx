@@ -26,6 +26,16 @@ const links = [
     },
     {
         id: 3,
+        name: "統計",
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1.33337 13.3334H14.6667M3.33337 10.6667V7.33337M6.66671 10.6667V4M10 10.6667V2M13.3334 10.6667V6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        ),
+        url: "/dashboard/statistics"
+    },
+    {
+        id: 4,
         name: "設定",
         icon: (
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
