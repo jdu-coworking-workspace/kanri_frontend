@@ -13,7 +13,7 @@ export default function StudentListFilter({ onOpenCreate }) {
         if (e.key === 'Enter') {
             router.push({
                 pathname: router.pathname,
-                query: { ...router.query, q: query }
+                query: { ...router.query, q: query, page: '1' }
             }, undefined, { shallow: true });
         }
     };
