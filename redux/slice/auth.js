@@ -1,5 +1,6 @@
 import defaultAxios, { authAxios } from "@/utils/axios";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { normalizeUser } from "@/utils/roles";
 
 export const loginUser = createAsyncThunk(
   "auth/login",
@@ -9,7 +10,7 @@ export const loginUser = createAsyncThunk(
       const userData = res.data?.data?.user || res.data;
 
 
-      return userData;
+      return normalizeUser(userData);
     } catch (err) {
       const errorMessage =
         err.response?.data?.detail ||
@@ -68,7 +69,7 @@ export const getMe = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await authAxios.get("auth/me");
-      return res.data?.data?.user || res.data;
+      return normalizeUser(res.data?.data?.user || res.data);
     } catch (err) {
       return rejectWithValue(err.response?.data?.detail || "セッションの期限が切れました。");
     }
