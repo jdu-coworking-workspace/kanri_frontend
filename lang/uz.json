@@ -169,5 +169,10 @@
     "categoryIT": "IT & Dasturlash",
     "categoryVideo": "Videomontaj",
     "categoryLightWork": "Yengil ishlar",
-    "categoryTrial": "Sinov muddati"
+    "categoryTrial": "Sinov muddati",
+    "projectDescription": "Tavsif",
+    "projectDescriptionPlaceholder": "Loyiha tavsifini kiriting...",
+    "filterSkillRank": "Mahorat darajasi",
+    "filterWorkStatus": "Ish holati",
+    "filterSemester": "Semestr"
 }

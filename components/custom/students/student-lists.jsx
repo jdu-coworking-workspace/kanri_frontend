@@ -13,12 +13,24 @@ export default function StudentLists({ onOpenEdit }) {
     const intl = useIntl();
     const searchQuery = router.query.q || router.query.sq || '';
     const currentPage = Math.max(1, parseInt(String(router.query.page || '1'), 10) || 1);
+    const skillRank = router.query.skill_rank || '';
+    const workStatus = router.query.work_status || '';
+    const semester = router.query.semester || '';
 
     const params = new URLSearchParams();
     params.set('page', String(currentPage));
     params.set('limit', String(PAGE_SIZE));
     if (searchQuery) {
         params.set('q', String(searchQuery));
+    }
+    if (skillRank) {
+        params.set('skill_rank', String(skillRank));
+    }
+    if (workStatus) {
+        params.set('work_status', String(workStatus));
+    }
+    if (semester) {
+        params.set('semester', String(semester));
     }
 
     const url = `students?${params.toString()}`;

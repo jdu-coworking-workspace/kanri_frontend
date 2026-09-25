@@ -169,5 +169,10 @@
     "categoryIT": "IT и разработка",
     "categoryVideo": "Видеомонтаж",
     "categoryLightWork": "Легкие работы",
-    "categoryTrial": "Стажировка"
+    "categoryTrial": "Стажировка",
+    "projectDescription": "Описание",
+    "projectDescriptionPlaceholder": "Введите описание проекта...",
+    "filterSkillRank": "Ранг навыка",
+    "filterWorkStatus": "Статус работы",
+    "filterSemester": "Семестр"
 }

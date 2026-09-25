@@ -95,6 +95,7 @@ export default function Dashboard({ info }) {
 
             const projectPayload = {
                 name: formData.title.trim(),
+                description: formData.description || (editingProject ? editingProject.description : null),
                 start_date: formData.startDate 
                     ? formData.startDate.replace(/\//g, '-') 
                     : (editingProject ? editingProject.start_date : new Date().toISOString().split('T')[0]),

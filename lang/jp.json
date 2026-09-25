@@ -169,5 +169,10 @@
     "categoryIT": "IT・開発",
     "categoryVideo": "動画制作",
     "categoryLightWork": "軽作業",
-    "categoryTrial": "体験学習"
+    "categoryTrial": "体験学習",
+    "projectDescription": "プロジェクト説明",
+    "projectDescriptionPlaceholder": "プロジェクトの説明を入力してください...",
+    "filterSkillRank": "スキルランク",
+    "filterWorkStatus": "就労ステータス",
+    "filterSemester": "セメスター"
 }

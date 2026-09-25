@@ -169,5 +169,10 @@
     "categoryIT": "IT & Software",
     "categoryVideo": "Video Production",
     "categoryLightWork": "Light Work",
-    "categoryTrial": "Trial / Internship"
+    "categoryTrial": "Trial / Internship",
+    "projectDescription": "Description",
+    "projectDescriptionPlaceholder": "Enter project description...",
+    "filterSkillRank": "Skill Rank",
+    "filterWorkStatus": "Work Status",
+    "filterSemester": "Semester"
 }
