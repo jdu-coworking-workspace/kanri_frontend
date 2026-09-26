@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useRouter } from 'next/router';
 
-export default function ProjectSearchBox({ onOpenCreate }) {
+export default function ProjectSearchBox({ onOpenCreate, readOnly = false }) {
     const intl = useIntl();
     const router = useRouter();
 
@@ -82,6 +82,7 @@ export default function ProjectSearchBox({ onOpenCreate }) {
                     />
                 </div>
             </div>
+            {!readOnly && (
             <Button
                 onClick={onOpenCreate}
                 leftIcon={`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -90,6 +91,7 @@ export default function ProjectSearchBox({ onOpenCreate }) {
             >
                 {intl.formatMessage({ id: 'プロジェクトを作成' })}
             </Button>
+            )}
         </div>
     );
 }

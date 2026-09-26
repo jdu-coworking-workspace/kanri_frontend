@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useIntl } from 'react-intl';
 import { useRouter } from 'next/router';
 
-export default function StudentListFilter({ onOpenCreate }) {
+export default function StudentListFilter({ onOpenCreate, readOnly = false }) {
     const intl = useIntl();
     const router = useRouter();
 
@@ -71,6 +71,7 @@ export default function StudentListFilter({ onOpenCreate }) {
                     onKeyDown={handleSearch}
                     placeholder={intl.formatMessage({ id: '学生名で絞り込み' })} 
                 />
+                {!readOnly && (
                 <div className="flex sm:justify-start justify-end">
                     <Button
                         onClick={onOpenCreate}
@@ -81,6 +82,7 @@ export default function StudentListFilter({ onOpenCreate }) {
                         {intl.formatMessage({ id: '学生を追加' })}
                     </Button>
                 </div>
+                )}
             </div>
 
             {/* Filter row */}

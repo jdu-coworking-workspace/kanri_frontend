@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { MenuTabs, ProjectSearchBox, StudentLists, StudentSearchBox } from '@/components/custom';
+import { isAdminRole } from '@/utils/roles';
 import ProjectLists from '@/components/custom/home/project-lists';
 import Seo from '@/components/Seo/Seo';
 import CreateProjectModal from '@/components/ui/Modal/create-project-modal';
@@ -12,6 +14,8 @@ import { toast } from 'react-toastify';
 
 export default function Dashboard({ info }) {
     const intl = useIntl();
+    const currentUser = useSelector((state) => state.auth.user);
+    const readOnly = !isAdminRole(currentUser?.role);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState(null);
     const [deletingProjectId, setDeletingProjectId] = useState(null);
@@ -55,21 +59,24 @@ export default function Dashboard({ info }) {
     };
 
     const handleOpenCreateModal = () => {
+        if (readOnly) return;
         setEditingProject(null);
         setIsModalOpen(true);
     };
 
     const handleOpenEditModal = (project) => {
+        if (readOnly) return;
         setEditingProject(project);
         setIsModalOpen(true);
     };
 
     const handleDeleteProject = (projectId) => {
+        if (readOnly) return;
         setDeletingProjectId(projectId);
     };
 
     const handleConfirmDeleteProject = async () => {
-        if (!deletingProjectId) return;
+        if (readOnly || !deletingProjectId) return;
         try {
             await authAxios.delete(`projects/${deletingProjectId}`);
             mutate((key) => typeof key === 'string' && key.startsWith('projects'));
@@ -82,6 +89,7 @@ export default function Dashboard({ info }) {
     };
 
     const handleProjectModalSubmit = async (formData) => {
+        if (readOnly) return;
         try {
             const statusMap = {
                 "稼働中": "active",
@@ -129,6 +137,7 @@ export default function Dashboard({ info }) {
     };
 
     const handleDeleteStudent = async (studentId) => {
+        if (readOnly) return;
         try {
             await authAxios.delete(`students/${studentId}`);
             setIsStudentModalOpen(false);
@@ -141,6 +150,7 @@ export default function Dashboard({ info }) {
     };
 
     const handleStudentModalSubmit = async (formData) => {
+        if (readOnly) return;
         try {
             const studentPayload = {
                 full_name: formData.name,
@@ -186,6 +196,7 @@ export default function Dashboard({ info }) {
 
     // A'zolikni boshqarish handlerlari
     const handleRemoveStudentMember = async (projectId, studentId) => {
+        if (readOnly) return;
         try {
             await authAxios.delete(`projects/${projectId}/members/${studentId}`);
             mutate((key) => typeof key === 'string' && (key.startsWith('projects') || key.startsWith('students')));
@@ -196,6 +207,7 @@ export default function Dashboard({ info }) {
     };
 
     const handleToggleLeaderStatus = async (project, studentId, currentIsLeader) => {
+        if (readOnly) return;
         const projectId = project.id;
         try {
             const nextIsLeader = !currentIsLeader;
@@ -225,6 +237,7 @@ export default function Dashboard({ info }) {
     };
 
     const handleMoveStudentMember = async (sourceProjectId, studentId, targetProjectId) => {
+        if (readOnly) return;
         if (sourceProjectId && sourceProjectId === targetProjectId) return;
         try {
             if (!sourceProjectId) {
@@ -263,7 +276,7 @@ export default function Dashboard({ info }) {
 
                     {/* Chap tomondagi asosiy kontent maydoni */}
                     <div className="w-full flex-1">
-                        <ProjectSearchBox onOpenCreate={handleOpenCreateModal} />
+                        <ProjectSearchBox onOpenCreate={handleOpenCreateModal} readOnly={readOnly} />
                         <ProjectLists 
                             onOpenEdit={handleOpenEditModal} 
                             onDelete={handleDeleteProject}
@@ -271,13 +284,14 @@ export default function Dashboard({ info }) {
                             onRemoveStudent={handleRemoveStudentMember}
                             onToggleLeader={handleToggleLeaderStatus}
                             onMoveStudent={handleMoveStudentMember}
+                            readOnly={readOnly}
                         />
                     </div>
 
                     {/* O'ng tomondagi Student paneli */}
                     <div className="w-full 2xl:w-[380px] shrink-0 flex flex-col gap-6 p-6 sm:p-8 bg-white dark:bg-gray-800 border border-transparent dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px] transition-colors duration-300">
                         <StudentSearchBox />
-                        <StudentLists onOpenEdit={handleOpenStudentEditModal} />
+                        <StudentLists onOpenEdit={handleOpenStudentEditModal} readOnly={readOnly} />
                     </div>
 
                 </div>

@@ -8,7 +8,8 @@ import { ConfirmModal } from '@/components/ui';
 import fetcher from '@/utils/fetcher';
 import { authAxios } from '@/utils/axios';
 import { mutate } from 'swr';
-import { User, Shield, ShieldAlert, Plus, Trash2, Mail, Calendar, ChevronDown, Check } from 'lucide-react';
+import { User, Shield, Plus, Trash2, Mail, Calendar, ChevronDown, Check } from 'lucide-react';
+import PasswordUpdateCard from '@/components/custom/settings/password-update-card';
 import { useIntl } from 'react-intl';
 import { toast } from 'react-toastify';
 import { USER_ROLES, isAdminRole, normalizeRole } from '@/utils/roles';
@@ -175,22 +176,8 @@ export default function SettingsPage({ info }) {
             <MenuTabs />
 
             <div className="container mx-auto px-4 py-6">
-                {!isAdmin ? (
-                    /* Non-admin access denied state */
-                    <div className="max-w-xl mx-auto mt-12 bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 shadow-soft-sm dark:shadow-none rounded-[24px] p-8 text-center transition-colors duration-300">
-                        <div className="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-2xl flex items-center justify-center mx-auto mb-5 text-red-600 dark:text-red-400">
-                            <ShieldAlert className="w-10 h-10" />
-                        </div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-[#122B31] dark:text-white mb-3">
-                            {intl.formatMessage({ id: 'アクセス権限がありません' })}
-                        </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-                            {intl.formatMessage({ id: 'アクセス権限警告メッセージ' })}
-                        </p>
-                    </div>
-                ) : (
-                    /* Admin staff management console */
                     <div className="flex flex-col gap-6 w-full">
+                        <PasswordUpdateCard />
                         {/* Header card */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px] transition-colors">
                             <div>
@@ -291,7 +278,6 @@ export default function SettingsPage({ info }) {
                             )}
                         </div>
                     </div>
-                )}
             </div>
 
             <AddStaffModal

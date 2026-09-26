@@ -2,6 +2,8 @@ import React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useIntl } from 'react-intl'
+import { useSelector } from 'react-redux'
+import { isStudentRole, settingsPathForRole } from '@/utils/roles'
 
 const links = [
     {
@@ -50,11 +52,16 @@ const links = [
 export default function MenuTabs() {
     const router = useRouter()
     const intl = useIntl()
+    const currentUser = useSelector((state) => state.auth.user)
+    const settingsUrl = settingsPathForRole(currentUser?.role)
+    const visibleLinks = links
+        .filter((link) => !isStudentRole(currentUser?.role) || link.url === "/dashboard" || link.id === 4)
+        .map((link) => (link.id === 4 ? { ...link, url: settingsUrl } : link))
 
     return (
         <div className="container">
             <div className="flex items-center py-3 sm:py-5 overflow-x-auto no-scrollbar">
-                {links.map((link) => {
+                {visibleLinks.map((link) => {
                     // URL mosligini aniqlash (Exact match yoki sub-path bo'yicha)
                     const isActive = router.pathname === link.url
 

@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
-export default function StudentLists({ onOpenEdit }) {
+export default function StudentLists({ onOpenEdit, readOnly = false }) {
     const router = useRouter();
     const intl = useIntl();
     const searchQuery = router.query.q || router.query.sq || '';
@@ -81,7 +81,8 @@ export default function StudentLists({ onOpenEdit }) {
                         gradDate={student.grad_year_month}
                         katakana={student.kana_name}
                         studentId={student.student_code}
-                        onClick={() => onOpenEdit?.(student)}
+                        draggable={false}
+                        onClick={readOnly ? undefined : () => onOpenEdit?.(student)}
                     />
                 ))
             ) : (
