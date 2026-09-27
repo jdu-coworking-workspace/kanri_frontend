@@ -10,15 +10,33 @@ export function settingsPathForRole(role) {
   return "/dashboard/settings";
 }
 
+export function reportsPathForRole(role) {
+  if (isStudentRole(role)) return "/dashboard/reports";
+  return "/dashboard/student-reports";
+}
+
 export function blockedRedirect(role, pathname) {
   if (!pathname || !pathname.startsWith("/dashboard")) return null;
 
   if (isStudentRole(role)) {
-    if (pathname === "/dashboard" || pathname === "/dashboard/student-settings") return null;
+    if (
+      pathname === "/dashboard" ||
+      pathname === "/dashboard/student-settings" ||
+      pathname === "/dashboard/reports" ||
+      pathname.startsWith("/dashboard/reports/")
+    ) {
+      return null;
+    }
+    if (pathname === "/dashboard/student-reports" || pathname.startsWith("/dashboard/student-reports/")) {
+      return "/dashboard/reports";
+    }
     return "/dashboard";
   }
 
   if (isStaffRole(role)) {
+    if (pathname === "/dashboard/reports" || pathname.startsWith("/dashboard/reports/")) {
+      return "/dashboard/student-reports";
+    }
     if (pathname === "/dashboard/settings" || pathname === "/dashboard/student-settings") {
       return "/dashboard/staff-settings";
     }
@@ -26,6 +44,9 @@ export function blockedRedirect(role, pathname) {
   }
 
   if (isAdminRole(role)) {
+    if (pathname === "/dashboard/reports" || pathname.startsWith("/dashboard/reports/")) {
+      return "/dashboard/student-reports";
+    }
     if (pathname === "/dashboard/staff-settings" || pathname === "/dashboard/student-settings") {
       return "/dashboard/settings";
     }

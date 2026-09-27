@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useIntl } from 'react-intl'
 import { useSelector } from 'react-redux'
-import { isStudentRole, settingsPathForRole } from '@/utils/roles'
+import { isStudentRole, reportsPathForRole, settingsPathForRole } from '@/utils/roles'
 
 const links = [
     {
@@ -37,6 +37,17 @@ const links = [
         url: "/dashboard/statistics"
     },
     {
+        id: 5,
+        name: "成果報告",
+        icon: (
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9.333 1.333H4a1.333 1.333 0 0 0-1.333 1.334v10.666A1.333 1.333 0 0 0 4 14.667h8a1.333 1.333 0 0 0 1.333-1.334V5.333L9.333 1.333Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M9.333 1.333V5.333h4M5.333 8.667h5.334M5.333 11.333h3.334" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+        ),
+        url: "/dashboard/student-reports"
+    },
+    {
         id: 4,
         name: "設定",
         icon: (
@@ -54,16 +65,23 @@ export default function MenuTabs() {
     const intl = useIntl()
     const currentUser = useSelector((state) => state.auth.user)
     const settingsUrl = settingsPathForRole(currentUser?.role)
+    const reportsUrl = reportsPathForRole(currentUser?.role)
     const visibleLinks = links
-        .filter((link) => !isStudentRole(currentUser?.role) || link.url === "/dashboard" || link.id === 4)
-        .map((link) => (link.id === 4 ? { ...link, url: settingsUrl } : link))
+        .filter((link) => !isStudentRole(currentUser?.role) || link.id === 1 || link.id === 4 || link.id === 5)
+        .map((link) => {
+            if (link.id === 4) return { ...link, url: settingsUrl }
+            if (link.id === 5) return { ...link, url: reportsUrl }
+            return link
+        })
 
     return (
         <div className="container">
             <div className="flex items-center py-3 sm:py-5 overflow-x-auto no-scrollbar">
                 {visibleLinks.map((link) => {
                     // URL mosligini aniqlash (Exact match yoki sub-path bo'yicha)
-                    const isActive = router.pathname === link.url
+                    const isActive = link.url === "/dashboard"
+                        ? router.pathname === "/dashboard"
+                        : router.pathname === link.url || router.pathname.startsWith(`${link.url}/`)
 
                     return (
                         <Link
