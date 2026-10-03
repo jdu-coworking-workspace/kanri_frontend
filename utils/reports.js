@@ -1,3 +1,5 @@
+import { authAxios } from '@/utils/axios';
+
 export function formatHours(minutes) {
     const total = Number(minutes) || 0;
     const hours = Math.floor(total / 60);
@@ -194,6 +196,7 @@ const CODE_MESSAGE = {
     REPORT_ALREADY_EXISTS: 'reportAlreadyAdded',
     REPORT_TIME_ORDER: 'reportTimeOrder',
     REPORT_DRAFT_HIDDEN: 'reportDraftHidden',
+    REPORT_EXPORT_EMPTY: 'reportNothingToDownload',
     STUDENT_PROFILE_NOT_FOUND: 'reportNoProfile',
 };
 
@@ -217,4 +220,48 @@ export function statusMessageId(status) {
 export function dateLocale(locale) {
     if (locale === 'jp') return 'ja';
     return locale || 'ja';
+}
+
+export async function downloadMonthlyReport(reportId, fallbackName = 'report.xlsx') {
+    return saveBlobResponse(
+        () => authAxios.get(`reports/${reportId}/export`, { responseType: 'blob' }),
+        fallbackName,
+    );
+}
+
+export async function downloadPeriodReports(year, month) {
+    const name = `reports_${year}-${String(month).padStart(2, '0')}.zip`;
+    return saveBlobResponse(
+        () => authAxios.get('reports/export', { responseType: 'blob', params: { year, month } }),
+        name,
+    );
+}
+
+async function saveBlobResponse(request, fallbackName) {
+    const response = await request();
+    const blob = response.data;
+    if (blob?.type?.includes('application/json')) {
+        const text = await blob.text();
+        let data = {};
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = {};
+        }
+        const error = new Error('API request failed');
+        error.data = data;
+        throw error;
+    }
+    const disposition = response.headers['content-disposition'] || '';
+    const matched = disposition.match(/filename="([^"]+)"/);
+    const filename = matched?.[1] || fallbackName;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return filename;
 }

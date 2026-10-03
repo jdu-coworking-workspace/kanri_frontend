@@ -1,4 +1,6 @@
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_API_URL;
+const rawBase =
+	process.env.NEXT_PUBLIC_BASE_API_URL || "http://localhost:8000/api/v1/";
+const BASE_URL = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
 
 // auth fetcher
 function updateOptions(options, auth) {
