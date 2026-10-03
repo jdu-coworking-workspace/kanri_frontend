@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/custom/reports/report-ui';
 import Seo from '@/components/Seo/Seo';
 import { authAxios } from '@/utils/axios';
 import fetcher from '@/utils/fetcher';
-import { apiErrorMessage, dateLocale, formatHours } from '@/utils/reports';
+import { apiErrorMessage, dateLocale, downloadMonthlyReport, formatHours } from '@/utils/reports';
 import { isAdminRole } from '@/utils/roles';
 
 export default function StudentReportDetailPage() {
@@ -54,21 +54,8 @@ export default function StudentReportDetailPage() {
     const download = async () => {
         setPending('download');
         try {
-            const response = await authAxios.get(`reports/${reportId}/export`, { responseType: 'blob' });
-            const blob = response.data;
-            if (blob?.type?.includes('application/json')) {
-                toast.error(intl.formatMessage({ id: 'エラーが発生しました' }));
-                return;
-            }
-            const disposition = response.headers['content-disposition'] || '';
-            const matched = disposition.match(/filename="([^"]+)"/);
-            const filename = matched?.[1] || `report-${report.year}-${report.month}.xlsx`;
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(url);
+            await downloadMonthlyReport(reportId, `report-${report.year}-${report.month}.xlsx`);
+            toast.success(intl.formatMessage({ id: 'reportDownloaded' }));
         } catch (downloadError) {
             toast.error(apiErrorMessage(downloadError, intl));
         } finally {

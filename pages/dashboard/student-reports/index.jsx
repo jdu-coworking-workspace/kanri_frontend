@@ -1,14 +1,23 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useIntl } from 'react-intl';
+import { useSelector } from 'react-redux';
 import useSWR from 'swr';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { MenuTabs } from '@/components/custom';
 import { MonthSwitcher, StatusBadge } from '@/components/custom/reports/report-ui';
 import Seo from '@/components/Seo/Seo';
 import fetcher from '@/utils/fetcher';
-import { formatHours, readPeriod } from '@/utils/reports';
+import {
+    apiErrorMessage,
+    downloadMonthlyReport,
+    downloadPeriodReports,
+    formatHours,
+    readPeriod,
+} from '@/utils/reports';
+import { isAdminRole } from '@/utils/roles';
 
 const PAGE_SIZE = 10;
 const EMPTY_PERIODS = [];
@@ -16,6 +25,8 @@ const EMPTY_PERIODS = [];
 export default function StudentReportListPage() {
     const intl = useIntl();
     const router = useRouter();
+    const currentUser = useSelector((state) => state.auth.user);
+    const isAdmin = isAdminRole(currentUser?.role);
     const period = useMemo(
         () => (router.isReady ? readPeriod(router.query) : readPeriod({})),
         [router.isReady, router.query.year, router.query.month],
@@ -32,6 +43,34 @@ export default function StudentReportListPage() {
     const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
     const safePage = Math.min(page, totalPages);
     const visibleItems = items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+    const [downloadingId, setDownloadingId] = useState('');
+    const [downloadingAll, setDownloadingAll] = useState(false);
+    const downloadableCount = items.filter((item) => item.report_id).length;
+
+    const download = async (item) => {
+        if (!item.report_id) return;
+        setDownloadingId(item.report_id);
+        try {
+            await downloadMonthlyReport(item.report_id, `${item.student_code}_${year}-${String(month).padStart(2, '0')}.xlsx`);
+            toast.success(intl.formatMessage({ id: 'reportDownloaded' }));
+        } catch (downloadError) {
+            toast.error(apiErrorMessage(downloadError, intl));
+        } finally {
+            setDownloadingId('');
+        }
+    };
+
+    const downloadAll = async () => {
+        setDownloadingAll(true);
+        try {
+            await downloadPeriodReports(year, month);
+            toast.success(intl.formatMessage({ id: 'reportDownloadedAll' }, { count: downloadableCount }));
+        } catch (downloadError) {
+            toast.error(apiErrorMessage(downloadError, intl));
+        } finally {
+            setDownloadingAll(false);
+        }
+    };
 
     useEffect(() => {
         if (!router.isReady || periods.length === 0 || periodIndex >= 0) return;
@@ -78,13 +117,38 @@ export default function StudentReportListPage() {
                     <h1 className="text-lg font-bold text-[#122B31] dark:text-white">
                         {intl.formatMessage({ id: 'reportListTitle' })}
                     </h1>
-                    <MonthSwitcher
-                        year={year}
-                        month={month}
-                        onChange={changeMonth}
-                        canGoBack={periodIndex >= 0 && periodIndex < periods.length - 1}
-                        canGoForward={periodIndex > 0}
-                    />
+                    <div className="flex flex-wrap items-center gap-3">
+                        {isAdmin && (
+                            <button
+                                type="button"
+                                onClick={downloadAll}
+                                disabled={downloadingAll || downloadableCount === 0}
+                                title={
+                                    downloadableCount === 0
+                                        ? intl.formatMessage({ id: 'reportNothingToDownload' })
+                                        : intl.formatMessage({ id: 'reportDownloadAllTitle' })
+                                }
+                                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#122B31] hover:bg-[#1B2A32] disabled:opacity-40 text-white font-bold text-xs sm:text-sm"
+                            >
+                                {downloadingAll ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4" />
+                                )}
+                                {intl.formatMessage({ id: 'reportDownloadAll' })}
+                                {downloadableCount > 0 && (
+                                    <span className="opacity-70">({downloadableCount})</span>
+                                )}
+                            </button>
+                        )}
+                        <MonthSwitcher
+                            year={year}
+                            month={month}
+                            onChange={changeMonth}
+                            canGoBack={periodIndex >= 0 && periodIndex < periods.length - 1}
+                            canGoForward={periodIndex > 0}
+                        />
+                    </div>
                 </div>
 
                 {isLoading && (
@@ -124,18 +188,45 @@ export default function StudentReportListPage() {
                                             <td className="px-3 py-3"><StatusBadge status={item.status} /></td>
                                             <td className="px-3 py-3 text-[#122B31] dark:text-white">{formatHours(item.total_minutes)}</td>
                                             <td className="px-4 py-3 text-right">
-                                                {['submitted', 'approved', 'rejected'].includes(item.status) ? (
-                                                    <Link
-                                                        href={{
-                                                            pathname: '/dashboard/student-reports/[id]',
-                                                            query: { id: item.report_id, year, month },
-                                                        }}
-                                                        className="text-kanri-primary font-semibold"
-                                                    >
-                                                        {intl.formatMessage({ id: 'reportOpen' })}
-                                                    </Link>
+                                                {item.report_id ? (
+                                                    <div className="inline-flex items-center gap-3">
+                                                        {item.status !== 'draft' && (
+                                                            <Link
+                                                                href={{
+                                                                    pathname: '/dashboard/student-reports/[id]',
+                                                                    query: { id: item.report_id, year, month },
+                                                                }}
+                                                                title={intl.formatMessage({ id: 'reportOpenTitle' })}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700"
+                                                            >
+                                                                {intl.formatMessage({ id: 'reportOpen' })}
+                                                            </Link>
+                                                        )}
+                                                        {isAdmin && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => download(item)}
+                                                                disabled={downloadingId === item.report_id}
+                                                                title={intl.formatMessage({ id: 'reportDownloadTitle' })}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                                                            >
+                                                                {downloadingId === item.report_id ? (
+                                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                ) : (
+                                                                    <Download className="w-3.5 h-3.5" />
+                                                                )}
+                                                                {intl.formatMessage({ id: 'reportDownloadShort' })}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 ) : (
-                                                    <span className="text-kanri-third dark:text-gray-500">—</span>
+                                                    <span
+                                                        title={intl.formatMessage({ id: 'reportNoReportYet' })}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-neutral-300 dark:border-gray-700 text-kanri-third dark:text-gray-500 text-xs"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5" />
+                                                        {intl.formatMessage({ id: 'reportNoReportYetShort' })}
+                                                    </span>
                                                 )}
                                             </td>
                                         </tr>
