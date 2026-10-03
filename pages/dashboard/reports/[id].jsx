@@ -275,8 +275,8 @@ export default function StudentReportEditorPage() {
                                                 <td className={`px-5 py-3.5 align-top whitespace-nowrap font-medium ${quiet}`}>
                                                     {date.toLocaleDateString(locale, { month: 'numeric', day: 'numeric', weekday: 'short' })}
                                                     {missing && (
-                                                        <span className="mt-1.5 block max-w-[9rem] text-[11px] font-medium leading-4 text-red-600">
-                                                            {intl.formatMessage({ id: 'reportDayRequired' })}
+                                                        <span className="mt-1.5 inline-flex items-center rounded-md bg-red-600 px-1.5 py-0.5 align-middle text-[11px] font-semibold leading-4 text-white">
+                                                            {intl.formatMessage({ id: 'reportDayRequiredShort' })}
                                                         </span>
                                                     )}
                                                 </td>
