@@ -16,8 +16,10 @@ const BaseInput = forwardRef(
     ref
   ) => {
     const variantClasses = {
-      default: "bg-kanri-surface border-kanri-border text-brand-primary dark:bg-gray-800 dark:border-gray-700",
-      modal: "bg-[#F5F8FA] border-[#E4E9EE] text-[#122B31] focus:bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-white",
+      default:
+        "bg-kanri-surface border-kanri-border text-brand-primary dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100",
+      modal:
+        "bg-[#F5F8FA] border-[#E4E9EE] text-[#122B31] focus:bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:focus:bg-slate-800",
     };
 
     return (
@@ -36,7 +38,7 @@ const BaseInput = forwardRef(
           <input
             ref={ref}
             disabled={disabled}
-            className={`w-full border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-[#8897AD] focus:outline-none focus:ring-2 focus:ring-brand-accent/30 transition-all ${variantClasses[variant] || variantClasses.default
+            className={`w-full border rounded-xl px-3.5 py-2.5 text-sm placeholder:text-[#8897AD] dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-accent/30 transition-all ${variantClasses[variant] || variantClasses.default
               } ${disabled ? "opacity-60 cursor-not-allowed" : ""
               } ${error ? "border-status-recording ring-1 ring-status-recording" : ""
               } ${leftIcon ? "pl-10" : ""} ${rightIcon ? "pr-10" : ""} ${className}`}

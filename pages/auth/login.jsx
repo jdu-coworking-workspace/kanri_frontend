@@ -55,7 +55,7 @@ export default function LoginPage() {
           <div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xl font-bold text-[#0A1D37] tracking-tight"
+              className="inline-flex items-center gap-2 text-xl font-bold text-[#0A1D37] dark:text-slate-100 tracking-tight"
             >
             </Link>
           </div>
@@ -64,10 +64,10 @@ export default function LoginPage() {
           <div className="w-full max-w-[400px]">
             {/* Sarlavha */}
             <div className="mb-8">
-              <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0A1D37] leading-tight mb-3">
+              <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0A1D37] dark:text-slate-100 leading-tight mb-3">
                 お帰りなさい
               </h1>
-              <p className="text-[15px] text-[#6B7280] leading-relaxed">
+              <p className="text-[15px] text-[#6B7280] dark:text-slate-300 leading-relaxed">
                 今日は新しい一日の始まりです。あなた自身の手で、
                 <br className="hidden sm:block" />
                 素晴らしい一日にしましょう。サインインして、プロ
@@ -120,7 +120,7 @@ export default function LoginPage() {
               <div className="flex justify-end">
                 <Link
                   href="/auth/forgot-password"
-                  className="text-sm text-[#0A1D37] hover:text-[#1E4174] transition-colors duration-150 font-medium"
+                  className="text-sm text-[#0A1D37] dark:text-slate-200 hover:text-[#1E4174] dark:hover:text-white transition-colors duration-150 font-medium"
                 >
                   パスワードをお忘れですか？
                 </Link>

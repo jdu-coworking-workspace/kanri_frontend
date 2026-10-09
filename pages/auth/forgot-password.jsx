@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
           <div>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-xl font-bold text-[#0A1D37] tracking-tight"
+              className="inline-flex items-center gap-2 text-xl font-bold text-[#0A1D37] dark:text-slate-100 tracking-tight"
             >
             </Link>
           </div>
@@ -61,10 +61,10 @@ export default function ForgotPasswordPage() {
               <>
                 {/* Sarlavha */}
                 <div className="mb-8">
-                  <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0A1D37] leading-tight mb-3">
+                  <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0A1D37] dark:text-slate-100 leading-tight mb-3">
                     パスワードをお忘れですか？
                   </h1>
-                  <p className="text-[15px] text-[#6B7280] leading-relaxed">
+                  <p className="text-[15px] text-[#6B7280] dark:text-slate-300 leading-relaxed">
                     ご心配なく。登録済みのメールアドレスを入力し
                     <br className="hidden sm:block" />
                     てください。パスワードをリセットするためのリ
@@ -112,7 +112,7 @@ export default function ForgotPasswordPage() {
                   <div className="text-center">
                     <Link
                       href="/auth/login"
-                      className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#0A1D37] transition-colors duration-150 font-medium"
+                      className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] dark:text-slate-300 hover:text-[#0A1D37] dark:hover:text-white transition-colors duration-150 font-medium"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -151,11 +151,11 @@ export default function ForgotPasswordPage() {
                   </svg>
                 </div>
 
-                <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0A1D37] leading-tight mb-3">
+                <h1 className="text-[28px] sm:text-[32px] font-bold text-[#0A1D37] dark:text-slate-100 leading-tight mb-3">
                   メールを送信しました ✉️
                 </h1>
-                <p className="text-[15px] text-[#6B7280] leading-relaxed mb-8">
-                  <span className="font-semibold text-[#0A1D37]">{submittedEmail}</span>
+                <p className="text-[15px] text-[#6B7280] dark:text-slate-300 leading-relaxed mb-8">
+                  <span className="font-semibold text-[#0A1D37] dark:text-slate-100">{submittedEmail}</span>
                   <br />
                   にパスワードリセットリンクを送信しました。
                   <br />
