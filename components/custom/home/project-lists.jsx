@@ -11,7 +11,8 @@ export default function ProjectLists({
     onAddStudent, 
     onRemoveStudent, 
     onToggleLeader, 
-    onMoveStudent 
+    onMoveStudent,
+    readOnly = false,
 }) {
     const router = useRouter();
     
@@ -92,13 +93,15 @@ export default function ProjectLists({
                             tags={tags} 
                             dateRange={dateRange} 
                             coverImage="/images/project-img.png" 
-                            students={studentsData} 
+                            students={studentsData}
+                            description={project.description || ""} 
                             onEdit={() => onOpenEdit?.(project)}
                             onDelete={() => onDelete?.(project.id)}
                             onAddStudent={() => onAddStudent?.(project)}
                             onRemoveStudent={(studentId) => onRemoveStudent?.(project.id, studentId)}
                             onToggleLeader={(studentId, currentIsLeader) => onToggleLeader?.(project, studentId, currentIsLeader)}
                             onMoveStudent={onMoveStudent}
+                            readOnly={readOnly}
                         />
                     );
                 })

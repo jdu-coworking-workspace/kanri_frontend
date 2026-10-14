@@ -8,9 +8,11 @@ import { ConfirmModal } from '@/components/ui';
 import fetcher from '@/utils/fetcher';
 import { authAxios } from '@/utils/axios';
 import { mutate } from 'swr';
-import { User, Shield, ShieldAlert, Plus, Trash2, Mail, Calendar, ChevronDown, Check } from 'lucide-react';
+import { User, Shield, Plus, Trash2, Mail, Calendar, ChevronDown, Check } from 'lucide-react';
+import PasswordUpdateCard from '@/components/custom/settings/password-update-card';
 import { useIntl } from 'react-intl';
 import { toast } from 'react-toastify';
+import { USER_ROLES, isAdminRole, normalizeRole } from '@/utils/roles';
 
 function RoleSelectDropdown({ value, onChange, disabled, intl }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -27,19 +29,20 @@ function RoleSelectDropdown({ value, onChange, disabled, intl }) {
     }, []);
 
     const roleConfigs = {
-        staff: {
+        [USER_ROLES.STAFF]: {
             label: intl.formatMessage({ id: 'スタッフ (Staff)' }),
             badgeClass: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60',
             dotClass: 'bg-emerald-500',
         },
-        admin: {
+        [USER_ROLES.ADMIN]: {
             label: intl.formatMessage({ id: '管理者 (Admin)' }),
             badgeClass: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/60 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/60',
             dotClass: 'bg-amber-500',
         },
     };
 
-    const currentConfig = roleConfigs[value] || roleConfigs.staff;
+    const currentRole = normalizeRole(value);
+    const currentConfig = roleConfigs[currentRole] || roleConfigs[USER_ROLES.STAFF];
 
     return (
         <div className="relative inline-block text-left" ref={dropdownRef}>
@@ -61,7 +64,7 @@ function RoleSelectDropdown({ value, onChange, disabled, intl }) {
             {isOpen && !disabled && (
                 <div className="absolute left-0 mt-1.5 w-44 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
                     {Object.entries(roleConfigs).map(([roleKey, cfg]) => {
-                        const isSelected = roleKey === value;
+                        const isSelected = roleKey === currentRole;
                         return (
                             <button
                                 key={roleKey}
@@ -93,7 +96,7 @@ function RoleSelectDropdown({ value, onChange, disabled, intl }) {
 export default function SettingsPage({ info }) {
     const intl = useIntl();
     const currentUser = useSelector((state) => state.auth.user);
-    const isAdmin = currentUser?.role === 'admin';
+    const isAdmin = isAdminRole(currentUser?.role);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [deletingStaff, setDeletingStaff] = useState(null);
@@ -124,7 +127,7 @@ export default function SettingsPage({ info }) {
 
     const handleRoleChange = async (userId, newRole) => {
         try {
-            await authAxios.put(`users/${userId}/role`, { role: newRole });
+            await authAxios.put(`users/${userId}/role`, { role: normalizeRole(newRole) });
             mutate('users');
         } catch (error) {
             console.error("Rolni o'zgartirishda xatolik:", error);
@@ -173,22 +176,8 @@ export default function SettingsPage({ info }) {
             <MenuTabs />
 
             <div className="container mx-auto px-4 py-6">
-                {!isAdmin ? (
-                    /* Non-admin access denied state */
-                    <div className="max-w-xl mx-auto mt-12 bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 shadow-soft-sm dark:shadow-none rounded-[24px] p-8 text-center transition-colors duration-300">
-                        <div className="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-2xl flex items-center justify-center mx-auto mb-5 text-red-600 dark:text-red-400">
-                            <ShieldAlert className="w-10 h-10" />
-                        </div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-[#122B31] dark:text-white mb-3">
-                            {intl.formatMessage({ id: 'アクセス権限がありません' })}
-                        </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
-                            {intl.formatMessage({ id: 'アクセス権限警告メッセージ' })}
-                        </p>
-                    </div>
-                ) : (
-                    /* Admin staff management console */
                     <div className="flex flex-col gap-6 w-full">
+                        <PasswordUpdateCard />
                         {/* Header card */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px] transition-colors">
                             <div>
@@ -250,7 +239,7 @@ export default function SettingsPage({ info }) {
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <RoleSelectDropdown
-                                                                value={user.role}
+                                                                value={normalizeRole(user.role)}
                                                                 disabled={isSelf}
                                                                 onChange={(newRole) => handleRoleChange(user.id, newRole)}
                                                                 intl={intl}
@@ -289,7 +278,6 @@ export default function SettingsPage({ info }) {
                             )}
                         </div>
                     </div>
-                )}
             </div>
 
             <AddStaffModal

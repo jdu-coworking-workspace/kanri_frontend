@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, Mail, User, Shield, Lock } from "lucide-react";
 import { BaseInput, BaseSelect } from "..";
 import { useIntl } from "react-intl";
+import { USER_ROLES, normalizeRole } from "@/utils/roles";
 
 export default function AddStaffModal({ isOpen, onClose, onSubmit }) {
     const intl = useIntl();
@@ -9,7 +10,7 @@ export default function AddStaffModal({ isOpen, onClose, onSubmit }) {
         email: "",
         fullName: "",
         password: "",
-        role: "staff",
+        role: USER_ROLES.STAFF,
     });
     const [error, setError] = useState("");
 
@@ -34,7 +35,7 @@ export default function AddStaffModal({ isOpen, onClose, onSubmit }) {
             email: formData.email,
             password: formData.password,
             full_name: formData.fullName,
-            role: formData.role
+            role: normalizeRole(formData.role)
         });
 
         // Reset form
@@ -42,7 +43,7 @@ export default function AddStaffModal({ isOpen, onClose, onSubmit }) {
             email: "",
             fullName: "",
             password: "",
-            role: "staff",
+            role: USER_ROLES.STAFF,
         });
     };
 
@@ -118,10 +119,10 @@ export default function AddStaffModal({ isOpen, onClose, onSubmit }) {
                                 label={intl.formatMessage({ id: '権限 (ロール)' })}
                                 placeholder={intl.formatMessage({ id: 'ロールを選択' })}
                                 value={formData.role}
-                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                onChange={(e) => setFormData({ ...formData, role: normalizeRole(e.target.value) })}
                                 options={[
-                                    { value: "staff", label: intl.formatMessage({ id: 'スタッフ (Staff)' }) },
-                                    { value: "admin", label: intl.formatMessage({ id: '管理者 (Admin)' }) },
+                                    { value: USER_ROLES.STAFF, label: intl.formatMessage({ id: 'スタッフ (Staff)' }) },
+                                    { value: USER_ROLES.ADMIN, label: intl.formatMessage({ id: '管理者 (Admin)' }) },
                                 ]}
                             />
                             <Shield className="w-4 h-4 text-gray-400 absolute right-3.5 top-[38px] pointer-events-none" />

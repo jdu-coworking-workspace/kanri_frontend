@@ -3,11 +3,13 @@ import { Calendar, MoreHorizontal, Plus, Edit2, Trash2, Crown } from "lucide-rea
 import Image from "next/image";
 import Tag from "../Tag/Tag";
 import Avatar from "../Avatar/Avatar";
+import Modal from "../Modal/Modal";
 import { useIntl } from "react-intl";
 
 const ProjectCard = ({
   id,
   title,
+  description = "",
   tags = [],
   dateRange,
   students = [],
@@ -19,12 +21,14 @@ const ProjectCard = ({
   onRemoveStudent,
   onToggleLeader,
   onMoveStudent,
+  readOnly = false,
   className = "",
   coverImage,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeStudentMenu, setActiveStudentMenu] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const menuRef = useRef(null);
   const intl = useIntl();
 
@@ -46,10 +50,12 @@ const ProjectCard = ({
   }, []);
 
   const handleDragOver = (e) => {
+    if (readOnly) return;
     e.preventDefault();
   };
 
   const handleDragEnter = (e) => {
+    if (readOnly) return;
     e.preventDefault();
     setIsDragOver(true);
   };
@@ -59,6 +65,7 @@ const ProjectCard = ({
   };
 
   const handleDrop = (e) => {
+    if (readOnly) return;
     e.preventDefault();
     setIsDragOver(false);
     try {
@@ -103,6 +110,7 @@ const ProjectCard = ({
       </div>
 
       {/* 3. Dropdown Menu */}
+      {!readOnly && (
       <div className="absolute top-[60px] right-1 z-30" ref={menuRef}>
         <button
           onClick={() => setIsMenuOpen((prev) => !prev)}
@@ -136,6 +144,7 @@ const ProjectCard = ({
           </div>
         )}
       </div>
+      )}
 
       {/* 5. Kontent */}
       <div
@@ -157,9 +166,13 @@ const ProjectCard = ({
           </div>
 
           {/* Sarlavha */}
-          <h3 className="text-kanri-primary dark:text-white text-base font-bold line-clamp-1 mb-3">
+          <button
+            type="button"
+            onClick={() => setIsDescriptionOpen(true)}
+            className="block w-full text-left text-kanri-primary dark:text-white text-base font-bold line-clamp-1 mb-3 hover:underline cursor-pointer"
+          >
             {title}
-          </h3>
+          </button>
 
           {/* Studentlar va bo'sh slotlar gridi (max 8 ta slot, 4 tadan 2 qator) */}
           <div className="grid grid-cols-4 gap-x-2 gap-y-3">
@@ -169,11 +182,13 @@ const ProjectCard = ({
                 <div key={idx} className="flex flex-col items-center relative student-avatar-container">
                   <div
                     onClick={(e) => {
+                      if (readOnly) return;
                       e.stopPropagation();
                       setActiveStudentMenu(isStudentMenuOpen ? null : student.id);
                     }}
-                    draggable
+                    draggable={!readOnly}
                     onDragStart={(e) => {
+                      if (readOnly) return;
                       e.stopPropagation();
                       e.dataTransfer.setData("text/plain", JSON.stringify({
                         sourceProjectId: id,
@@ -195,7 +210,7 @@ const ProjectCard = ({
                     />
                   </div>
                   
-                  {isStudentMenuOpen && (
+                  {!readOnly && isStudentMenuOpen && (
                     <div className="absolute top-[50px] left-1/2 -translate-x-1/2 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl py-1.5 z-40 animate-in fade-in zoom-in-95 duration-100">
                       <button
                         onClick={(e) => {
@@ -263,6 +278,19 @@ const ProjectCard = ({
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isDescriptionOpen}
+        onClose={() => setIsDescriptionOpen(false)}
+        title={title}
+        size="sm"
+      >
+        <p className="text-sm text-[#456272] dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+          {description?.trim()
+            ? description
+            : intl.formatMessage({ id: "projectDescriptionEmpty" })}
+        </p>
+      </Modal>
     </div>
   );
 };

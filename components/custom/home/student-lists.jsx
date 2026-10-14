@@ -5,7 +5,7 @@ import fetcher from '@/utils/fetcher';
 import { StudentCard } from '@/components/ui';
 import { useIntl } from 'react-intl';
 
-export default function StudentLists({ onOpenEdit }) {
+export default function StudentLists({ onOpenEdit, readOnly = false }) {
     const router = useRouter();
     const intl = useIntl();
     // Get search query from URL (?sq=xxx for dashboard home page student filter)
@@ -40,7 +40,8 @@ export default function StudentLists({ onOpenEdit }) {
                         studentId={student.student_code} 
                         isLeader={false}
                         groupCount={student.concurrent_projects_count || 0}
-                        onClick={() => onOpenEdit?.(student)}
+                        draggable={!readOnly}
+                        onClick={readOnly ? undefined : () => onOpenEdit?.(student)}
                     />
                 ))
             ) : (

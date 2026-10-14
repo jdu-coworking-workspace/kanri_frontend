@@ -16,6 +16,7 @@ import { initCollapse } from "../utils/collapse";
 import { Flip, ToastContainer } from "react-toastify";
 import { SWRConfig } from "swr";
 import { useEffect } from "react";
+import { blockedRedirect } from "@/utils/roles";
 
 // CSS Styles
 import "../public/styles/nprogress.css";
@@ -35,11 +36,12 @@ function AppContent({ Component, pageProps }) {
   const router = useRouter();
   const { isDarkMode } = useTheme(); // Endi bu yerda ishonchli ishlaydi
   const dispatch = useDispatch();
-  const { isAuthenticated, initialized } = useSelector((state) => state.auth);
+  const { isAuthenticated, initialized, user } = useSelector((state) => state.auth);
 
   const isAuthPage = Component.layout === "auth";
   const isProtectedPage = router.pathname.startsWith("/dashboard");
   const isRootPage = router.pathname === "/";
+  const roleRedirect = blockedRedirect(user?.role, router.pathname);
 
   useEffect(() => {
     dispatch(getMe());
@@ -50,6 +52,8 @@ function AppContent({ Component, pageProps }) {
 
     if (isProtectedPage && !isAuthenticated) {
       router.push("/auth/login");
+    } else if (roleRedirect) {
+      router.replace(roleRedirect);
     } else if (isAuthPage && isAuthenticated) {
       router.push("/dashboard");
     } else if (isRootPage) {
@@ -59,7 +63,7 @@ function AppContent({ Component, pageProps }) {
         router.push("/auth/login");
       }
     }
-  }, [initialized, isAuthenticated, isAuthPage, isProtectedPage, isRootPage, router]);
+  }, [initialized, isAuthenticated, isAuthPage, isProtectedPage, isRootPage, roleRedirect, router]);
 
   useEffect(() => {
     try {
@@ -82,7 +86,7 @@ function AppContent({ Component, pageProps }) {
     }
   }, [router]);
 
-  if (!initialized) {
+  if (!initialized || roleRedirect) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f5] dark:bg-gray-900 transition-colors duration-300">
         <div className="w-12 h-12 rounded-full border-[3px] border-gray-200 dark:border-gray-800 border-t-kanri-primary animate-spin mb-4"></div>

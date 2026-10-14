@@ -12,6 +12,7 @@ const StudentCard = ({
   workStatus,
   gradDate,
   onClick,
+  draggable = true,
   className = "",
   isLeader,
   groupCount,
@@ -19,9 +20,9 @@ const StudentCard = ({
   return (
     <div
       onClick={onClick}
-      draggable={!!id}
+      draggable={draggable && !!id}
       onDragStart={(e) => {
-        if (id) {
+        if (draggable && id) {
           e.dataTransfer.setData("text/plain", JSON.stringify({
             sourceProjectId: null,
             studentId: id
@@ -30,7 +31,7 @@ const StudentCard = ({
       }}
       className={`flex items-center gap-2 
         bg-[#f5f5f5] dark:bg-gray-800 
-        p-2 rounded-lg cursor-pointer 
+        p-2 rounded-lg ${onClick || draggable ? "cursor-pointer" : "cursor-default"} 
         border border-transparent 
         hover:border-kanri-secondary dark:border-white/10 dark:hover:border-white 
         transition-colors duration-150 ${className}`}

@@ -8,6 +8,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
     const [error, setError] = useState("");
     const [formData, setFormData] = useState({
         title: "",
+        description: "",
         startDate: "",
         endDate: "",
         status: "準備中",
@@ -28,6 +29,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
 
             setFormData({
                 title: editingProject.name || "",
+                description: editingProject.description || "",
                 startDate: editingProject.start_date ? editingProject.start_date.replace(/-/g, '/') : "",
                 endDate: editingProject.end_date ? editingProject.end_date.replace(/-/g, '/') : "",
                 status: reverseStatusMap[editingProject.status] || "準備中",
@@ -37,6 +39,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
         } else {
             setFormData({
                 title: "",
+                description: "",
                 startDate: "",
                 endDate: "",
                 status: "準備中",
@@ -122,6 +125,20 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                             }}
                             error={error}
                         />
+
+                        {/* Project Description */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-medium text-[#122B31] dark:text-gray-200">
+                                {intl.formatMessage({ id: 'projectDescription' })}
+                            </label>
+                            <textarea
+                                className="w-full bg-[#F5F8FA] dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-[#122B31] dark:text-white placeholder-[#8897AD] dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-kanri-primary/30 focus:border-kanri-primary transition-all resize-none"
+                                rows={3}
+                                placeholder={intl.formatMessage({ id: 'projectDescriptionPlaceholder' })}
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            />
+                        </div>
 
                         {/* Date Picker Range */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
