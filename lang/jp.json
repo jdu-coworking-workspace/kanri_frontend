@@ -269,5 +269,9 @@
     "reportTimeOrder": "開始時刻は終了時刻より後にできません",
     "reportTimeInvalid": "時刻は00:00から23:59まで入力してください",
     "reportDraftHidden": "下書きの報告書は開けません",
-    "reportPickTime": "時刻を選択"
+    "reportPickTime": "時刻を選択",
+    "firstLoginTitle": "プロフィール写真を設定しましょう",
+    "firstLoginMessage": "初めてのログインおめでとうございます！設定ページでプロフィール写真をアップロードしましょう。",
+    "firstLoginSkip": "あとで",
+    "firstLoginUpload": "写真を設定する"
 }

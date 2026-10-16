@@ -8,9 +8,9 @@ export const loginUser = createAsyncThunk(
     try {
       const res = await defaultAxios.post("auth/login", data);
       const userData = res.data?.data?.user || res.data;
+      const isFirstLogin = res.data?.data?.is_first_login === true;
 
-
-      return normalizeUser(userData);
+      return { user: normalizeUser(userData), isFirstLogin };
     } catch (err) {
       const errorMessage =
         err.response?.data?.detail ||
@@ -84,6 +84,7 @@ const authSlice = createSlice({
     loading: false,
     error: null,
     initialized: false,
+    isFirstLogin: false,
   },
   reducers: {
     logout: (state) => {
@@ -97,6 +98,9 @@ const authSlice = createSlice({
     clearAuthError: (state) => {
       state.error = null;
     },
+    clearFirstLogin: (state) => {
+      state.isFirstLogin = false;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -108,7 +112,8 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
-        state.user = action.payload;
+        state.user = action.payload.user;
+        state.isFirstLogin = action.payload.isFirstLogin;
         state.error = null;
         state.initialized = true;
       })
@@ -176,5 +181,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearAuthError } = authSlice.actions;
+export const { logout, clearAuthError, clearFirstLogin } = authSlice.actions;
 export default authSlice.reducer;

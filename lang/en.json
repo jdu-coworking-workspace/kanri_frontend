@@ -269,5 +269,9 @@
     "reportTimeOrder": "Start time must not be later than finish time",
     "reportTimeInvalid": "Enter a time from 00:00 to 23:59",
     "reportDraftHidden": "A draft report cannot be opened",
-    "reportPickTime": "Choose a time"
+    "reportPickTime": "Choose a time",
+    "firstLoginTitle": "Set your profile photo",
+    "firstLoginMessage": "Welcome to Kanri! Head over to Settings to upload your profile photo.",
+    "firstLoginSkip": "Later",
+    "firstLoginUpload": "Upload photo"
 }

@@ -269,5 +269,9 @@
     "reportTimeOrder": "Время начала не должно быть позже времени окончания",
     "reportTimeInvalid": "Введите время от 00:00 до 23:59",
     "reportDraftHidden": "Черновик нельзя открыть",
-    "reportPickTime": "Выберите время"
+    "reportPickTime": "Выберите время",
+    "firstLoginTitle": "Установите фото профиля",
+    "firstLoginMessage": "Добро пожаловать в Kanri! Перейдите в Настройки, чтобы загрузить фото профиля.",
+    "firstLoginSkip": "Позже",
+    "firstLoginUpload": "Загрузить фото"
 }

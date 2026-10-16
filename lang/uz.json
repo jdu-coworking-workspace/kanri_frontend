@@ -269,5 +269,9 @@
     "reportTimeOrder": "Boshlanish vaqti tugash vaqtidan katta bo'lmasligi kerak",
     "reportTimeInvalid": "Vaqt 00:00 dan 23:59 gacha bo'lishi kerak",
     "reportDraftHidden": "Qoralama hisobotni ochib bo'lmaydi",
-    "reportPickTime": "Vaqtni tanlang"
+    "reportPickTime": "Vaqtni tanlang",
+    "firstLoginTitle": "Profil rasmini o'rnating",
+    "firstLoginMessage": "Kanriga xush kelibsiz! Sozlamalar sahifasiga o'tib profil rasmingizni yuklang.",
+    "firstLoginSkip": "Keyinroq",
+    "firstLoginUpload": "Rasm yuklash"
 }

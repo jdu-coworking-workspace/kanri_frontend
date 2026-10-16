@@ -36,7 +36,7 @@ function AppContent({ Component, pageProps }) {
   const router = useRouter();
   const { isDarkMode } = useTheme(); // Endi bu yerda ishonchli ishlaydi
   const dispatch = useDispatch();
-  const { isAuthenticated, initialized, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, initialized, user, isFirstLogin } = useSelector((state) => state.auth);
 
   const isAuthPage = Component.layout === "auth";
   const isProtectedPage = router.pathname.startsWith("/dashboard");
@@ -54,7 +54,7 @@ function AppContent({ Component, pageProps }) {
       router.push("/auth/login");
     } else if (roleRedirect) {
       router.replace(roleRedirect);
-    } else if (isAuthPage && isAuthenticated) {
+    } else if (isAuthPage && isAuthenticated && !isFirstLogin) {
       router.push("/dashboard");
     } else if (isRootPage) {
       if (isAuthenticated) {
@@ -63,7 +63,7 @@ function AppContent({ Component, pageProps }) {
         router.push("/auth/login");
       }
     }
-  }, [initialized, isAuthenticated, isAuthPage, isProtectedPage, isRootPage, roleRedirect, router]);
+  }, [initialized, isAuthenticated, isAuthPage, isProtectedPage, isRootPage, isFirstLogin, roleRedirect, router]);
 
   useEffect(() => {
     try {

@@ -1,17 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import Seo from "@/components/Seo/Seo";
-import { Button, BaseInput, PasswordInput } from "@/components/ui";
-import { loginUser, clearAuthError } from "@/redux/slice/auth";
+import { Button, BaseInput, PasswordInput, FirstLoginModal } from "@/components/ui";
+import { loginUser, clearAuthError, clearFirstLogin } from "@/redux/slice/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated, isFirstLogin } = useSelector((state) => state.auth);
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
 
   const {
     register,
@@ -29,16 +30,34 @@ export default function LoginPage() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // If authenticated but first-login dialog is visible, don't redirect yet
+    if (isAuthenticated && !showFirstLoginModal && !isFirstLogin) {
       router.push("/dashboard");
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, showFirstLoginModal, isFirstLogin, router]);
 
   const onSubmit = async (data) => {
     const result = await dispatch(loginUser(data));
     if (loginUser.fulfilled.match(result)) {
-      router.push("/dashboard");
+      if (result.payload.isFirstLogin) {
+        // Show the first-login dialog; don't redirect yet
+        setShowFirstLoginModal(true);
+      } else {
+        router.push("/dashboard");
+      }
     }
+  };
+
+  const handleGoToSettings = () => {
+    setShowFirstLoginModal(false);
+    dispatch(clearFirstLogin());
+    router.push("/dashboard/student-settings");
+  };
+
+  const handleCloseFirstLogin = () => {
+    setShowFirstLoginModal(false);
+    dispatch(clearFirstLogin());
+    // Fall through — the useEffect above will redirect to /dashboard
   };
 
   return (
@@ -162,9 +181,17 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* First Login Modal */}
+      <FirstLoginModal
+        isOpen={showFirstLoginModal}
+        onClose={handleCloseFirstLogin}
+        onGoToSettings={handleGoToSettings}
+      />
     </>
   );
 }
 
 // Auth sahifalar uchun AuthLayout ishlatish
 LoginPage.layout = "auth";
+
