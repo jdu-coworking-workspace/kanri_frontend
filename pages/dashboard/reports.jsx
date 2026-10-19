@@ -38,7 +38,11 @@ export default function StudentReportsPage() {
     const addMonth = async () => {
         setAdding(true);
         try {
-            const response = await authAxios.post('reports/me');
+            const title = `${currentLabel} report ${items.length + 1}`;
+            const response = await authAxios.post('reports/me', {
+                title,
+                report_type: 'hourly',
+            });
             await mutate();
             const reportId = response.data?.data?.id;
             if (reportId) router.push(`/dashboard/reports/${reportId}`);
