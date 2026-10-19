@@ -36,8 +36,6 @@ export default function StudentReportsPage() {
     const [newReport, setNewReport] = useState({
         title: '',
         report_type: 'hourly',
-        condition_1_label: '',
-        condition_2_label: '',
     });
     const availableTypes = summary?.available_report_types || ['hourly', 'output'];
     const currentLabel = summary
@@ -54,7 +52,10 @@ export default function StudentReportsPage() {
         event.preventDefault();
         setAdding(true);
         try {
-            const response = await authAxios.post('reports/me', newReport);
+            const response = await authAxios.post('reports/me', {
+                title: newReport.title,
+                report_type: newReport.report_type,
+            });
             await mutate();
             const reportId = response.data?.data?.id;
             if (reportId) router.push(`/dashboard/reports/${reportId}`);
@@ -142,27 +143,6 @@ export default function StudentReportsPage() {
                                 }))}
                                 variant="modal"
                             />
-                            {newReport.report_type === 'output' && (
-                                <>
-                                    <BaseInput
-                                        label={intl.formatMessage({ id: 'reportWorkType1' })}
-                                        required
-                                        maxLength={100}
-                                        value={newReport.condition_1_label}
-                                        onChange={(event) => setNewReport((current) => ({ ...current, condition_1_label: event.target.value }))}
-                                        placeholder="e.g. 1-minute video"
-                                        variant="modal"
-                                    />
-                                    <BaseInput
-                                        label={intl.formatMessage({ id: 'reportWorkType2' })}
-                                        maxLength={100}
-                                        value={newReport.condition_2_label}
-                                        onChange={(event) => setNewReport((current) => ({ ...current, condition_2_label: event.target.value }))}
-                                        placeholder="e.g. Short reel"
-                                        variant="modal"
-                                    />
-                                </>
-                            )}
                         </div>
                         <button
                             type="submit"
