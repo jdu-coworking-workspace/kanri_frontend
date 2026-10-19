@@ -17,6 +17,7 @@ const BaseSelect = forwardRef(
       disabled = false,
       placeholder = "選ぶ...",
       name,
+      id,
     },
     ref
   ) => {
@@ -66,6 +67,7 @@ const BaseSelect = forwardRef(
         <div className="relative w-full" ref={dropdownRef}>
           <div
             ref={ref}
+            id={id}
             onClick={() => !disabled && setIsOpen((prev) => !prev)}
             className={`w-full flex items-center justify-between border rounded-xl px-3.5 py-2.5 text-sm cursor-pointer transition-all ${variantClasses[variant] || variantClasses.default
               } ${disabled ? "opacity-60 cursor-not-allowed" : ""} ${error ? "border-status-recording ring-1 ring-status-recording" : ""
