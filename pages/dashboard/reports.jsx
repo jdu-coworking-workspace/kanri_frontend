@@ -31,21 +31,26 @@ export default function StudentReportsPage() {
     const summary = data?.data;
     const items = summary?.items || [];
     const [adding, setAdding] = useState(false);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [newReport, setNewReport] = useState({
+        title: '',
+        report_type: 'hourly',
+        condition_1_label: '',
+        condition_2_label: '',
+    });
     const currentLabel = summary
         ? monthName(summary.current_year, summary.current_month, intl.locale, true)
         : '';
 
-    const addMonth = async () => {
+    const addMonth = async (event) => {
+        event.preventDefault();
         setAdding(true);
         try {
-            const title = `${currentLabel} report ${items.length + 1}`;
-            const response = await authAxios.post('reports/me', {
-                title,
-                report_type: 'hourly',
-            });
+            const response = await authAxios.post('reports/me', newReport);
             await mutate();
             const reportId = response.data?.data?.id;
             if (reportId) router.push(`/dashboard/reports/${reportId}`);
+            setShowCreateForm(false);
         } catch (addError) {
             toast.error(apiErrorMessage(addError, intl));
         } finally {
@@ -75,7 +80,7 @@ export default function StudentReportsPage() {
                     {summary && (
                         <button
                             type="button"
-                            onClick={addMonth}
+                            onClick={() => setShowCreateForm(true)}
                             disabled={!summary.can_add_current || adding}
                             className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-black px-4 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-black disabled:cursor-not-allowed disabled:opacity-40"
                         >
@@ -86,6 +91,81 @@ export default function StudentReportsPage() {
                         </button>
                     )}
                 </section>
+
+                {showCreateForm && (
+                    <form
+                        onSubmit={addMonth}
+                        className="rounded-[24px] border border-neutral-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6 shadow-soft-sm"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-bold text-black dark:text-white">Create report</h2>
+                                <p className="mt-1 text-sm text-kanri-third dark:text-gray-400">
+                                    Choose a report type and give it a distinct name.
+                                </p>
+                            </div>
+                            <button type="button" onClick={() => setShowCreateForm(false)} className="text-sm text-kanri-third">
+                                Cancel
+                            </button>
+                        </div>
+                        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
+                                Report name
+                                <input
+                                    required
+                                    maxLength={255}
+                                    value={newReport.title}
+                                    onChange={(event) => setNewReport((current) => ({ ...current, title: event.target.value }))}
+                                    placeholder="Lighthouse project"
+                                    className="rounded-xl border border-[#E4E9EE] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 font-normal"
+                                />
+                            </label>
+                            <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
+                                Report type
+                                <select
+                                    value={newReport.report_type}
+                                    onChange={(event) => setNewReport((current) => ({ ...current, report_type: event.target.value }))}
+                                    className="rounded-xl border border-[#E4E9EE] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 font-normal"
+                                >
+                                    <option value="hourly">Hourly (coder)</option>
+                                    <option value="output">Output (video / designer)</option>
+                                </select>
+                            </label>
+                            {newReport.report_type === 'output' && (
+                                <>
+                                    <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
+                                        Condition 1
+                                        <input
+                                            required
+                                            maxLength={100}
+                                            value={newReport.condition_1_label}
+                                            onChange={(event) => setNewReport((current) => ({ ...current, condition_1_label: event.target.value }))}
+                                            placeholder="1-minute video"
+                                            className="rounded-xl border border-[#E4E9EE] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 font-normal"
+                                        />
+                                    </label>
+                                    <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
+                                        Condition 2 (optional)
+                                        <input
+                                            maxLength={100}
+                                            value={newReport.condition_2_label}
+                                            onChange={(event) => setNewReport((current) => ({ ...current, condition_2_label: event.target.value }))}
+                                            placeholder="Short reel"
+                                            className="rounded-xl border border-[#E4E9EE] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 font-normal"
+                                        />
+                                    </label>
+                                </>
+                            )}
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={adding}
+                            className="mt-5 rounded-xl bg-black px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                        >
+                            {adding ? 'Creating...' : 'Create report'}
+                        </button>
+                    </form>
+                )}
 
                 {isLoading && (
                     <p className="text-sm text-kanri-third dark:text-gray-400">
@@ -124,9 +204,15 @@ export default function StudentReportsPage() {
                                             <h2 className="mt-1 text-2xl font-bold text-black dark:text-white">
                                                 {monthName(item.year, item.month, intl.locale)}
                                             </h2>
+                                            <p className="mt-1 text-sm font-medium text-kanri-third dark:text-gray-400">
+                                                {item.title || 'Untitled report'}
+                                            </p>
                                         </div>
                                         <StatusBadge status={item.status} />
                                     </div>
+                                    <span className="mt-3 w-fit rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
+                                        {item.report_type || 'hourly'}
+                                    </span>
                                     <p className="mt-5 text-3xl font-semibold tabular-nums text-black dark:text-white">
                                         {formatHours(item.total_minutes)}
                                     </p>

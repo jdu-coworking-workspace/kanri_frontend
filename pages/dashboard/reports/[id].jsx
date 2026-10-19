@@ -60,7 +60,7 @@ export default function StudentReportEditorPage() {
 
     useEffect(() => {
         if (!report) return;
-        setDays(mergeDays(report.year, report.month, report.days));
+        setDays(mergeDays(report.year, report.month, report.days, report.report_type));
         setWeeks({
             week_1: report.week_1 || '',
             week_2: report.week_2 || '',
@@ -70,8 +70,9 @@ export default function StudentReportEditorPage() {
         });
     }, [snapshot]);
 
+    const isOutput = report?.report_type === 'output';
     const totalMinutes = days.reduce(
-        (sum, day) => sum + (day.is_day_off ? 0 : durationMinutes(day.start_time, day.finish_time)),
+        (sum, day) => sum + (day.is_day_off ? 0 : (isOutput ? Number(day.work_minutes) || 0 : durationMinutes(day.start_time, day.finish_time))),
         0,
     );
     const hydrated = Boolean(report && days.length === report.day_count);
@@ -102,7 +103,20 @@ export default function StudentReportEditorPage() {
                     start_time: '',
                     finish_time: '',
                     description: '',
+                    work_minutes: '',
+                    count_1: '',
+                    count_2: '',
                     is_day_off: true,
+                };
+            }
+            if (isOutput) {
+                return {
+                    ...day,
+                    work_minutes: Number(readField(day.work_date, 'work_minutes') ?? day.work_minutes) || 0,
+                    count_1: Number(readField(day.work_date, 'count_1') ?? day.count_1) || 0,
+                    count_2: Number(readField(day.work_date, 'count_2') ?? day.count_2) || 0,
+                    description: readField(day.work_date, 'description') ?? day.description,
+                    is_day_off: false,
                 };
             }
             const start = readClock(day.work_date, 'start_time', day.start_time);
@@ -175,7 +189,7 @@ export default function StudentReportEditorPage() {
         }
         setDays(currentDays);
         if (rejectTimeOrder(currentDays)) return;
-        if (!isReportComplete(currentDays)) {
+        if (!isReportComplete(currentDays, report.report_type)) {
             setShowMissing(true);
             toast.error(intl.formatMessage({ id: 'reportIncomplete' }));
             return;
@@ -252,8 +266,18 @@ export default function StudentReportEditorPage() {
                                 <thead className="bg-gray-50 dark:bg-gray-900/40 text-left text-kanri-third dark:text-gray-400">
                                     <tr>
                                         <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportDay' })}</th>
-                                        <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportStart' })}</th>
-                                        <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportFinish' })}</th>
+                                        {isOutput ? (
+                                            <>
+                                                <th className="px-4 py-3 font-medium">Work minutes</th>
+                                                <th className="px-4 py-3 font-medium">{report.condition_1_label || 'Condition 1'}</th>
+                                                <th className="px-4 py-3 font-medium">{report.condition_2_label || 'Condition 2'}</th>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportStart' })}</th>
+                                                <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportFinish' })}</th>
+                                            </>
+                                        )}
                                         <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportHours' })}</th>
                                         <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportMemo' })}</th>
                                         <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportDayOff' })}</th>
@@ -280,29 +304,45 @@ export default function StudentReportEditorPage() {
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3.5 align-top">
-                                                    <TimeField
-                                                        value={day.start_time}
-                                                        disabled={!editable || day.is_day_off}
-                                                        reportDate={day.work_date}
-                                                        reportField="start_time"
-                                                        onChange={(next) => updateDay(day.work_date, { start_time: next })}
-                                                    />
-                                                </td>
-                                                <td className="px-4 py-3.5 align-top">
-                                                    <TimeField
-                                                        value={day.finish_time}
-                                                        disabled={!editable || day.is_day_off}
-                                                        reportDate={day.work_date}
-                                                        reportField="finish_time"
-                                                        onChange={(next) => updateDay(day.work_date, { finish_time: next })}
-                                                    />
-                                                    {invalidOrder && (
-                                                        <span className="mt-1.5 block text-[11px] leading-4 text-red-600">
-                                                            {intl.formatMessage({ id: 'reportTimeOrder' })}
-                                                        </span>
-                                                    )}
-                                                </td>
+                                                {isOutput ? (
+                                                    <>
+                                                        <td className="px-4 py-3.5 align-top">
+                                                            <input type="number" min="0" max="1440" value={day.work_minutes} disabled={!editable || day.is_day_off} data-report-date={day.work_date} data-report-field="work_minutes" onChange={(event) => updateDay(day.work_date, { work_minutes: event.target.value })} className="w-28 rounded-xl border border-[#E4E9EE] bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
+                                                        </td>
+                                                        <td className="px-4 py-3.5 align-top">
+                                                            <input type="number" min="0" value={day.count_1} disabled={!editable || day.is_day_off} data-report-date={day.work_date} data-report-field="count_1" onChange={(event) => updateDay(day.work_date, { count_1: event.target.value })} className="w-24 rounded-xl border border-[#E4E9EE] bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
+                                                        </td>
+                                                        <td className="px-4 py-3.5 align-top">
+                                                            <input type="number" min="0" value={day.count_2} disabled={!editable || day.is_day_off} data-report-date={day.work_date} data-report-field="count_2" onChange={(event) => updateDay(day.work_date, { count_2: event.target.value })} className="w-24 rounded-xl border border-[#E4E9EE] bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className="px-4 py-3.5 align-top">
+                                                            <TimeField
+                                                                value={day.start_time}
+                                                                disabled={!editable || day.is_day_off}
+                                                                reportDate={day.work_date}
+                                                                reportField="start_time"
+                                                                onChange={(next) => updateDay(day.work_date, { start_time: next })}
+                                                            />
+                                                        </td>
+                                                        <td className="px-4 py-3.5 align-top">
+                                                            <TimeField
+                                                                value={day.finish_time}
+                                                                disabled={!editable || day.is_day_off}
+                                                                reportDate={day.work_date}
+                                                                reportField="finish_time"
+                                                                onChange={(next) => updateDay(day.work_date, { finish_time: next })}
+                                                            />
+                                                            {invalidOrder && (
+                                                                <span className="mt-1.5 block text-[11px] leading-4 text-red-600">
+                                                                    {intl.formatMessage({ id: 'reportTimeOrder' })}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                    </>
+                                                )}
                                                 <td className={`px-4 py-3.5 align-top whitespace-nowrap font-medium tabular-nums ${quiet}`}>
                                                     {day.is_day_off ? '—' : formatHours(minutes)}
                                                 </td>
@@ -339,7 +379,7 @@ export default function StudentReportEditorPage() {
                                 </tbody>
                                 <tfoot>
                                     <tr className="border-t border-[#E4E9EE] dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/40">
-                                        <td className="px-5 py-3.5 font-bold text-[#122B31] dark:text-white" colSpan={3}>
+                                        <td className="px-5 py-3.5 font-bold text-[#122B31] dark:text-white" colSpan={isOutput ? 4 : 3}>
                                             {intl.formatMessage({ id: 'reportTotal' })}
                                         </td>
                                         <td className="px-4 py-3.5 font-bold tabular-nums text-[#122B31] dark:text-white">

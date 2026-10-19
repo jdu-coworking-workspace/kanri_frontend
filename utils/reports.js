@@ -128,7 +128,7 @@ export function clockValue(value) {
     return match ? match[1] : '';
 }
 
-export function mergeDays(year, month, serverDays) {
+export function mergeDays(year, month, serverDays, reportType = 'hourly') {
     const last = new Date(year, month, 0).getDate();
     const byDate = {};
     (serverDays || []).forEach((day) => {
@@ -144,6 +144,10 @@ export function mergeDays(year, month, serverDays) {
             start_time: isDayOff ? '' : clockValue(source.start_time),
             finish_time: isDayOff ? '' : clockValue(source.finish_time),
             description: isDayOff ? '' : (source.description || ''),
+            work_minutes: isDayOff ? '' : (source.work_minutes ?? ''),
+            count_1: isDayOff ? '' : (source.count_1 ?? ''),
+            count_2: isDayOff ? '' : (source.count_2 ?? ''),
+            report_type: reportType,
             is_day_off: isDayOff,
         });
     }
@@ -165,6 +169,9 @@ export function reportPayload(year, month, weeks, days) {
             start_time: day.is_day_off ? null : (day.start_time || null),
             finish_time: day.is_day_off ? null : (day.finish_time || null),
             description: day.is_day_off ? null : (day.description?.trim() ? day.description.trim() : null),
+            work_minutes: day.is_day_off || day.work_minutes === '' ? null : Number(day.work_minutes),
+            count_1: day.is_day_off || day.count_1 === '' ? null : Number(day.count_1),
+            count_2: day.is_day_off || day.count_2 === '' ? null : Number(day.count_2),
         })),
     };
 }
@@ -174,8 +181,11 @@ export function timeOrderInvalid(start, finish) {
     return start > finish;
 }
 
-export function isDayComplete(day) {
+export function isDayComplete(day, reportType = 'hourly') {
     if (day.is_day_off) return true;
+    if (reportType === 'output') {
+        return Number(day.work_minutes) > 0;
+    }
     return Boolean(
         day.start_time
         && day.finish_time
@@ -184,8 +194,8 @@ export function isDayComplete(day) {
     );
 }
 
-export function isReportComplete(days) {
-    return days.every(isDayComplete);
+export function isReportComplete(days, reportType = 'hourly') {
+    return days.every((day) => isDayComplete(day, reportType));
 }
 
 const CODE_MESSAGE = {
