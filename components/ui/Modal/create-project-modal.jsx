@@ -14,6 +14,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
         status: "準備中",
         category: "trial", // Default category
         image: null,
+        imagePreview: null,
     });
 
     const fileInputRef = useRef(null);
@@ -35,6 +36,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                 status: reverseStatusMap[editingProject.status] || "準備中",
                 category: editingProject.category || "trial",
                 image: null,
+                imagePreview: editingProject.image_url || editingProject.coverImage || editingProject.thumbnail || null,
             });
         } else {
             setFormData({
@@ -45,9 +47,18 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                 status: "準備中",
                 category: "trial",
                 image: null,
+                imagePreview: null,
             });
         }
     }, [editingProject, isOpen]);
+
+    useEffect(() => {
+        return () => {
+            if (formData.imagePreview?.startsWith('blob:')) {
+                URL.revokeObjectURL(formData.imagePreview);
+            }
+        };
+    }, [formData.imagePreview]);
 
     if (!isOpen) return null;
 
@@ -83,7 +94,8 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-            setFormData((prev) => ({ ...prev, image: file }));
+            const previewUrl = URL.createObjectURL(file);
+            setFormData((prev) => ({ ...prev, image: file, imagePreview: previewUrl }));
         }
     };
 
@@ -190,6 +202,9 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                             <label className="text-sm font-medium text-[#122B31] dark:text-gray-200">
                                 {intl.formatMessage({ id: 'プロジェクト画像' })}
                             </label>
+                            <p className="text-xs text-[#8897AD] dark:text-gray-400">
+                                {intl.formatMessage({ id: '推奨規格' })}: JPG/PNG
+                            </p>
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -202,10 +217,15 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                                 className="w-full bg-[#F5F8FA] dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm flex items-center justify-between cursor-pointer hover:bg-[#EEF3F7] transition-colors"
                             >
                                 <span className="text-[#8897AD] truncate">
-                                    {formData.image ? formData.image.name : intl.formatMessage({ id: '画像を選択' })}
+                                    {formData.image ? formData.image.name : (formData.imagePreview ? intl.formatMessage({ id: '画像を選択' }) : intl.formatMessage({ id: '画像を選択' }))}
                                 </span>
                                 <Upload className="w-4 h-4 text-[#8897AD]" />
                             </div>
+                            {formData.imagePreview && (
+                                <div className="mt-2 w-full h-32 rounded-xl overflow-hidden border border-[#E4E9EE] dark:border-gray-700">
+                                    <img src={formData.imagePreview} alt="preview" className="w-full h-full object-cover" />
+                                </div>
+                            )}
                         </div>
 
                         {/* Buttons */}

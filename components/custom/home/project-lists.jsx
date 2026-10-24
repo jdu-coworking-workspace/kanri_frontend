@@ -53,7 +53,14 @@ export default function ProjectLists({
         return <div className="p-4 text-center text-red-500 w-full">{intl.formatMessage({ id: 'エラーが発生しました' })}</div>;
     }
 
-    const projects = data?.data || [];
+    let projects = data?.data || [];
+    const statusOrder = { planned: 0, active: 1, done: 2 };
+    projects = [...projects].sort((a, b) => {
+        const orderA = statusOrder[a?.status] !== undefined ? statusOrder[a.status] : 99;
+        const orderB = statusOrder[b?.status] !== undefined ? statusOrder[b.status] : 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return 0;
+    });
 
     return (
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-8">
@@ -72,18 +79,30 @@ export default function ProjectLists({
                     
                     const studentsData = project.members
                         ?.filter(m => !m.left_at)
-                        ?.map(m => ({
-                            id: m.student.id, // Must pass DB uuid instead of student_code to map back to db membership operations
-                            avatar: m.student.avatar_url || '/images/avatar-1.png',
-                            name: m.student.full_name,
-                            isLeader: m.is_leader,
-                            katakana: m.student.kana_name,
-                            studentCode: m.student.student_code,
-                            status: m.student.skill_rank,
-                            workStatus: m.student.work_status,
-                            gradDate: m.student.grad_year_month,
-                            groupCount: m.student.concurrent_projects_count
-                        })) || [];
+                        ?.map(m => {
+                            let groupCount = m.student.concurrent_projects_count;
+                            if (groupCount === undefined || groupCount === null) {
+                                const cnt = (m.student.project_memberships || []).filter(pm => {
+                                    if (pm.left_at) return false;
+                                    const p = pm.project || project;
+                                    if (p.status === 'done' || p.status === '完了') return false;
+                                    return true;
+                                }).length;
+                                groupCount = cnt;
+                            }
+                            return {
+                                id: m.student.id, // Must pass DB uuid instead of student_code to map back to db membership operations
+                                avatar: m.student.avatar_url || '/images/avatar-1.png',
+                                name: m.student.full_name,
+                                isLeader: m.is_leader,
+                                katakana: m.student.kana_name,
+                                studentCode: m.student.student_code,
+                                status: m.student.skill_rank,
+                                workStatus: m.student.work_status,
+                                gradDate: m.student.grad_year_month,
+                                groupCount: groupCount
+                            };
+                        }) || [];
 
                     return (
                         <ProjectCard 
@@ -92,7 +111,7 @@ export default function ProjectLists({
                             title={project.name} 
                             tags={tags} 
                             dateRange={dateRange} 
-                            coverImage="/images/project-img.png" 
+                            coverImage={project.image_url || project.cover_image || project.image || "/images/project-img.png"} 
                             students={studentsData}
                             description={project.description || ""} 
                             onEdit={() => onOpenEdit?.(project)}

@@ -5,6 +5,7 @@ const Tag = ({ children, variant = "trial", className = "", ...props }) => {
     trial: "bg-tag-trial",
     active: "bg-tag-active",
     complete: "bg-tag-complete",
+    done: "bg-tag-complete",
   };
 
   const baseClasses =

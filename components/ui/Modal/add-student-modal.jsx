@@ -129,7 +129,7 @@ export default function AddStudentModal({ isOpen, onClose, onSubmit, editingStud
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <BaseInput
                                 variant="modal"
-                                label={intl.formatMessage({ id: '学生番号' })}
+                                label={intl.formatMessage({ id: '学籍番号' })}
                                 placeholder={intl.formatMessage({ id: '例 : 20260001' })}
                                 value={formData.studentId}
                                 onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
@@ -160,6 +160,7 @@ export default function AddStudentModal({ isOpen, onClose, onSubmit, editingStud
                                     { value: "7-semestr", label: intl.formatMessage({ id: 'semester7' }) },
                                     { value: "8-semestr", label: intl.formatMessage({ id: 'semester8' }) },
                                     { value: "9-semestr", label: intl.formatMessage({ id: 'semester9' }) },
+                                    { value: "卒業", label: intl.formatMessage({ id: 'graduated' }) },
                                 ]}
                             />
                             <BaseSelect

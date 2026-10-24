@@ -40,7 +40,7 @@ export default function ProjectSearchBox({ onOpenCreate, readOnly = false }) {
                     value={name} 
                     onChange={e => setName(e.target.value)} 
                     onKeyDown={handleKeyDown} 
-                    placeholder={intl.formatMessage({ id: '名前で絞り込み' })} 
+                    placeholder={intl.formatMessage({ id: 'プロジェクト名' })} 
                 />
                 <BaseInput 
                     value={member} 

@@ -115,10 +115,21 @@ export default function Dashboard({ info }) {
                 overview: editingProject ? (editingProject.overview || "") : ""
             };
 
+            let projectId = editingProject?.id;
             if (editingProject) {
                 await authAxios.put(`projects/${editingProject.id}`, projectPayload);
             } else {
-                await authAxios.post("projects", projectPayload);
+                const response = await authAxios.post("projects", projectPayload);
+                projectId = response.data?.data?.id;
+            }
+
+            if (projectId && formData.image) {
+                const uploadData = new FormData();
+                uploadData.append("project_id", projectId);
+                uploadData.append("file", formData.image);
+                await authAxios.post("uploads/project-image", uploadData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
             }
 
             setIsModalOpen(false);

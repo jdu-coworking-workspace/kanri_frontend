@@ -6,7 +6,7 @@ import { StudentCard } from '@/components/ui';
 import { useIntl } from 'react-intl';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
 
 export default function StudentLists({ onOpenEdit, readOnly = false }) {
     const router = useRouter();

@@ -81,8 +81,9 @@ const ProjectCard = ({
     }
   };
 
+  const isDone = tags?.some(t => t.variant === 'done' || t.label === intl.formatMessage({ id: '完了' }));
   return (
-    <div className={`relative w-full select-none pt-[60px] ${className}`}>
+    <div className={`relative w-full select-none pt-[60px] ${isDone ? 'opacity-60 grayscale-[30%]' : ''} ${className}`}>
       {/* 1. Cover Image */}
       <div className="absolute top-0 left-0 w-full h-[140px] rounded-t-[20px] overflow-hidden z-0 after:absolute after:w-full after:h-full after:top-0 after:left-0 after:bg-black/20">
         {coverImage ? (
@@ -176,7 +177,11 @@ const ProjectCard = ({
 
           {/* Studentlar va bo'sh slotlar gridi (max 8 ta slot, 4 tadan 2 qator) */}
           <div className="grid grid-cols-4 gap-x-2 gap-y-3">
-            {visibleStudents.map((student, idx) => {
+            {[...visibleStudents].sort((a, b) => {
+              if (a.isLeader && !b.isLeader) return -1;
+              if (!a.isLeader && b.isLeader) return 1;
+              return 0;
+            }).map((student, idx) => {
               const isStudentMenuOpen = activeStudentMenu === student.id;
               return (
                 <div key={idx} className="flex flex-col items-center relative student-avatar-container">
