@@ -46,7 +46,7 @@ export default function ProjectSearchBox({ onOpenCreate, readOnly = false }) {
                     value={member} 
                     onChange={e => setMember(e.target.value)} 
                     onKeyDown={handleKeyDown} 
-                    placeholder={intl.formatMessage({ id: '学生名で絞り込み' })} 
+                    placeholder={intl.formatMessage({ id: '氏名・フリガナ・学籍番号' })} 
                 />
                 <div className='grid grid-cols-2 gap-3 sm:gap-4 lg:col-span-1 col-span-2'>
                     <BaseSelect

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { X, Upload } from "lucide-react";
 import { BaseInput, BaseSelect, DateInput } from "..";
 import { useIntl } from "react-intl";
+import { toast } from "react-toastify";
 
 export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingProject = null }) {
     const intl = useIntl();
@@ -93,14 +94,36 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
 
     const handleFileChange = (e) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const previewUrl = URL.createObjectURL(file);
-            setFormData((prev) => ({ ...prev, image: file, imagePreview: previewUrl }));
+        if (!file) return;
+
+        // Supported file types: JPG, PNG, WEBP
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+        if (!allowedTypes.includes(file.type)) {
+            toast.error(intl.formatMessage({ id: 'invalidImageType' }));
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
         }
+
+        // Max file size: 5 MB
+        const maxSizeBytes = 5 * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
+            toast.error(intl.formatMessage({ id: 'imageTooLarge' }));
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
+
+        const previewUrl = URL.createObjectURL(file);
+        setFormData((prev) => ({ ...prev, image: file, imagePreview: previewUrl }));
+    };
+
+    const handleRemoveImage = (e) => {
+        e.stopPropagation();
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        setFormData((prev) => ({ ...prev, image: null, imagePreview: null }));
     };
 
     return (
-        /* Tashqi qism Scroll bo'lishi uchun inset-0 va overflow-y-auto qo'shildi */
+        /* Outer modal with scroll */
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-sm p-4">
             <div className="flex min-h-full items-center justify-center py-5">
                 <div className="w-full max-w-[740px] bg-white dark:bg-gray-900 rounded-[24px] p-6 shadow-2xl transition-all">
@@ -197,33 +220,41 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                             />
                         </div>
 
-                        {/* Project Image Upload Input */}
+                        {/* Project Image Upload Input with clearly specified standards */}
                         <div className="flex flex-col gap-1.5">
                             <label className="text-sm font-medium text-[#122B31] dark:text-gray-200">
                                 {intl.formatMessage({ id: 'プロジェクト画像' })}
                             </label>
                             <p className="text-xs text-[#8897AD] dark:text-gray-400">
-                                {intl.formatMessage({ id: '推奨規格' })}: JPG/PNG
+                                {intl.formatMessage({ id: 'imageRequirements' })}
                             </p>
                             <input
                                 type="file"
                                 ref={fileInputRef}
                                 className="hidden"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp,image/jpg"
                                 onChange={handleFileChange}
                             />
                             <div
                                 onClick={() => fileInputRef.current?.click()}
-                                className="w-full bg-[#F5F8FA] dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm flex items-center justify-between cursor-pointer hover:bg-[#EEF3F7] transition-colors"
+                                className="w-full bg-[#F5F8FA] dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm flex items-center justify-between cursor-pointer hover:bg-[#EEF3F7] dark:hover:bg-gray-700/50 transition-colors"
                             >
-                                <span className="text-[#8897AD] truncate">
-                                    {formData.image ? formData.image.name : (formData.imagePreview ? intl.formatMessage({ id: '画像を選択' }) : intl.formatMessage({ id: '画像を選択' }))}
+                                <span className="text-[#8897AD] dark:text-gray-400 truncate">
+                                    {formData.image ? formData.image.name : intl.formatMessage({ id: '画像を選択' })}
                                 </span>
-                                <Upload className="w-4 h-4 text-[#8897AD]" />
+                                <Upload className="w-4 h-4 text-[#8897AD] dark:text-gray-400 shrink-0" />
                             </div>
                             {formData.imagePreview && (
-                                <div className="mt-2 w-full h-32 rounded-xl overflow-hidden border border-[#E4E9EE] dark:border-gray-700">
+                                <div className="mt-2 w-full h-36 rounded-xl overflow-hidden border border-[#E4E9EE] dark:border-gray-700 relative group">
                                     <img src={formData.imagePreview} alt="preview" className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveImage}
+                                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-md"
+                                        title={intl.formatMessage({ id: '削除' })}
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
                                 </div>
                             )}
                         </div>

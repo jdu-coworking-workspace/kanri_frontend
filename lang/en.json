@@ -288,5 +288,9 @@
     "firstLoginTitle": "Set your profile photo",
     "firstLoginMessage": "Welcome to Kanri! Head over to Settings to upload your profile photo.",
     "firstLoginSkip": "Later",
-    "firstLoginUpload": "Upload photo"
+    "firstLoginUpload": "Upload photo",
+    "imageRequirements": "Recommended: JPG, PNG, WEBP (Max 5MB, ratio 16:9 / 1200×675px)",
+    "invalidImageType": "Only JPG, PNG, and WEBP formats are supported.",
+    "imageTooLarge": "Image size must not exceed 5MB.",
+    "imageUploadFailed": "Failed to upload image."
 }

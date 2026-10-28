@@ -124,12 +124,17 @@ export default function Dashboard({ info }) {
             }
 
             if (projectId && formData.image) {
-                const uploadData = new FormData();
-                uploadData.append("project_id", projectId);
-                uploadData.append("file", formData.image);
-                await authAxios.post("uploads/project-image", uploadData, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                });
+                try {
+                    const uploadData = new FormData();
+                    uploadData.append("project_id", projectId);
+                    uploadData.append("file", formData.image);
+                    await authAxios.post("uploads/project-image", uploadData, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    });
+                } catch (imgError) {
+                    console.error("Rasm yuklashda xatolik:", imgError);
+                    showApiErrorToast(imgError, "Rasm yuklashda xatolik yuz berdi.");
+                }
             }
 
             setIsModalOpen(false);

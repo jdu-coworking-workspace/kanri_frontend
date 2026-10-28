@@ -288,5 +288,9 @@
     "firstLoginTitle": "Установите фото профиля",
     "firstLoginMessage": "Добро пожаловать в Kanri! Перейдите в Настройки, чтобы загрузить фото профиля.",
     "firstLoginSkip": "Позже",
-    "firstLoginUpload": "Загрузить фото"
+    "firstLoginUpload": "Загрузить фото",
+    "imageRequirements": "Рекомендуемый формат: JPG, PNG, WEBP (Макс. 5МБ, соотношение 16:9 / 1200×675px)",
+    "invalidImageType": "Поддерживаются только форматы JPG, PNG и WEBP.",
+    "imageTooLarge": "Размер изображения не должен превышать 5МБ.",
+    "imageUploadFailed": "Не удалось загрузить изображение."
 }

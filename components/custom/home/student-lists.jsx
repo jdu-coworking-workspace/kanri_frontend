@@ -11,7 +11,9 @@ export default function StudentLists({ onOpenEdit, readOnly = false }) {
     // Get search query from URL (?sq=xxx for dashboard home page student filter)
     const searchQuery = router.query.sq || '';
 
-    const url = searchQuery ? `students?q=${encodeURIComponent(searchQuery)}` : 'students';
+    const url = searchQuery 
+        ? `students?limit=100&q=${encodeURIComponent(searchQuery)}` 
+        : 'students?limit=100';
     const { data, error, isLoading } = useSWR(url, (u) => fetcher(u, {}, {}, true));
 
     if (isLoading) {

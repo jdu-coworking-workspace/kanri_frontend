@@ -288,5 +288,9 @@
     "firstLoginTitle": "Profil rasmini o'rnating",
     "firstLoginMessage": "Kanriga xush kelibsiz! Sozlamalar sahifasiga o'tib profil rasmingizni yuklang.",
     "firstLoginSkip": "Keyinroq",
-    "firstLoginUpload": "Rasm yuklash"
+    "firstLoginUpload": "Rasm yuklash",
+    "imageRequirements": "Tavsiya etilgan format: JPG, PNG, WEBP (Maksimal 5MB, tavsiya etilgan nisbat 16:9 / 1200×675px)",
+    "invalidImageType": "Faqat JPG, PNG va WEBP formatdagi rasmlar qabul qilinadi.",
+    "imageTooLarge": "Rasm hajmi 5MB dan oshmasligi kerak.",
+    "imageUploadFailed": "Rasm yuklashda xatolik yuz berdi."
 }

@@ -18,6 +18,7 @@ export default function ProjectLists({
     
     const buildQueryString = () => {
         const params = new URLSearchParams();
+        params.append('limit', '100');
         if (router.query.name) params.append('name', router.query.name);
         if (router.query.member) params.append('member', router.query.member);
         if (router.query.status) params.append('status', router.query.status);

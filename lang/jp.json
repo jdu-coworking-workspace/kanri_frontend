@@ -290,5 +290,9 @@
     "firstLoginTitle": "プロフィール写真を設定しましょう",
     "firstLoginMessage": "初めてのログインおめでとうございます！設定ページでプロフィール写真をアップロードしましょう。",
     "firstLoginSkip": "あとで",
-    "firstLoginUpload": "写真を設定する"
+    "firstLoginUpload": "写真を設定する",
+    "imageRequirements": "推奨規格: JPG, PNG, WEBP (最大5MB、推奨比率 16:9 / 1200×675px)",
+    "invalidImageType": "画像形式はJPG、PNG、WEBPのみ対応しています。",
+    "imageTooLarge": "画像サイズは5MB以下にしてください。",
+    "imageUploadFailed": "画像のアップロードに失敗しました。"
 }
