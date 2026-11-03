@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useIntl } from 'react-intl';
@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { MenuTabs } from '@/components/custom';
+import { BaseInput, BaseSelect } from '@/components/ui';
 import { StatusBadge } from '@/components/custom/reports/report-ui';
 import Seo from '@/components/Seo/Seo';
 import { authAxios } from '@/utils/axios';
@@ -31,17 +32,34 @@ export default function StudentReportsPage() {
     const summary = data?.data;
     const items = summary?.items || [];
     const [adding, setAdding] = useState(false);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [newReport, setNewReport] = useState({
+        title: '',
+        report_type: 'hourly',
+    });
+    const availableTypes = summary?.available_report_types || ['hourly', 'output'];
     const currentLabel = summary
         ? monthName(summary.current_year, summary.current_month, intl.locale, true)
         : '';
 
-    const addMonth = async () => {
+    useEffect(() => {
+        if (availableTypes.length > 0 && !availableTypes.includes(newReport.report_type)) {
+            setNewReport((current) => ({ ...current, report_type: availableTypes[0] }));
+        }
+    }, [availableTypes, newReport.report_type]);
+
+    const addMonth = async (event) => {
+        event.preventDefault();
         setAdding(true);
         try {
-            const response = await authAxios.post('reports/me');
+            const response = await authAxios.post('reports/me', {
+                title: newReport.title,
+                report_type: newReport.report_type,
+            });
             await mutate();
             const reportId = response.data?.data?.id;
             if (reportId) router.push(`/dashboard/reports/${reportId}`);
+            setShowCreateForm(false);
         } catch (addError) {
             toast.error(apiErrorMessage(addError, intl));
         } finally {
@@ -71,7 +89,7 @@ export default function StudentReportsPage() {
                     {summary && (
                         <button
                             type="button"
-                            onClick={addMonth}
+                            onClick={() => setShowCreateForm(true)}
                             disabled={!summary.can_add_current || adding}
                             className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-black px-4 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-black disabled:cursor-not-allowed disabled:opacity-40"
                         >
@@ -82,6 +100,61 @@ export default function StudentReportsPage() {
                         </button>
                     )}
                 </section>
+
+                {showCreateForm && (
+                    <form
+                        onSubmit={addMonth}
+                        className="rounded-[24px] border border-neutral-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sm:p-6 shadow-soft-sm"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-lg font-bold text-black dark:text-white">
+                                    {intl.formatMessage({ id: 'reportCreateTitle' })}
+                                </h2>
+                                <p className="mt-1 text-sm text-kanri-third dark:text-gray-400">
+                                    {intl.formatMessage({ id: 'reportCreateHint' })}
+                                </p>
+                            </div>
+                            <button type="button" onClick={() => setShowCreateForm(false)} className="text-sm text-kanri-third">
+                                {intl.formatMessage({ id: 'reportCancel' })}
+                            </button>
+                        </div>
+                        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <BaseInput
+                                label={intl.formatMessage({ id: 'reportName' })}
+                                required
+                                maxLength={255}
+                                value={newReport.title}
+                                onChange={(event) => setNewReport((current) => ({ ...current, title: event.target.value }))}
+                                placeholder="Lighthouse project"
+                                variant="modal"
+                            />
+                            <BaseSelect
+                                label="reportType"
+                                name="report_type"
+                                value={newReport.report_type}
+                                options={[
+                                    { value: 'hourly', label: intl.formatMessage({ id: 'reportTypeHourly' }) },
+                                    { value: 'output', label: intl.formatMessage({ id: 'reportTypeOutput' }) },
+                                ].filter((option) => availableTypes.includes(option.value))}
+                                onChange={(event) => setNewReport((current) => ({
+                                    ...current,
+                                    report_type: event.target.value,
+                                }))}
+                                variant="modal"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={adding}
+                            className="mt-5 rounded-xl bg-black px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 dark:bg-white dark:text-black"
+                        >
+                            {adding
+                                ? intl.formatMessage({ id: 'reportCreating' })
+                                : intl.formatMessage({ id: 'reportCreate' })}
+                        </button>
+                    </form>
+                )}
 
                 {isLoading && (
                     <p className="text-sm text-kanri-third dark:text-gray-400">
@@ -120,9 +193,15 @@ export default function StudentReportsPage() {
                                             <h2 className="mt-1 text-2xl font-bold text-black dark:text-white">
                                                 {monthName(item.year, item.month, intl.locale)}
                                             </h2>
+                                            <p className="mt-1 text-sm font-medium text-kanri-third dark:text-gray-400">
+                                                {item.title || 'Untitled report'}
+                                            </p>
                                         </div>
                                         <StatusBadge status={item.status} />
                                     </div>
+                                    <span className="mt-3 w-fit rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
+                                        {item.report_type || 'hourly'}
+                                    </span>
                                     <p className="mt-5 text-3xl font-semibold tabular-nums text-black dark:text-white">
                                         {formatHours(item.total_minutes)}
                                     </p>

@@ -81,10 +81,11 @@ const ProjectCard = ({
     }
   };
 
+  const isDone = tags?.some(t => t.variant === 'done' || t.label === intl.formatMessage({ id: '完了' }));
   return (
     <div className={`relative w-full select-none pt-[60px] ${className}`}>
       {/* 1. Cover Image */}
-      <div className="absolute top-0 left-0 w-full h-[140px] rounded-t-[20px] overflow-hidden z-0 after:absolute after:w-full after:h-full after:top-0 after:left-0 after:bg-black/20">
+      <div className={`absolute top-0 left-0 w-full h-[140px] rounded-t-[20px] overflow-hidden z-0 after:absolute after:w-full after:h-full after:top-0 after:left-0 after:bg-black/20 ${isDone ? 'opacity-35 grayscale-[90%]' : ''}`}>
         {coverImage ? (
           <Image
             src={coverImage}
@@ -100,8 +101,8 @@ const ProjectCard = ({
         )}
       </div>
 
-      {/* 2. Top Tags */}
-      <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
+      {/* 2. Top Tags - Clearly visible */}
+      <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5">
         {tags.map((tag, idx) => (
           <Tag key={idx} variant={tag.variant}>
             {tag.label}
@@ -153,6 +154,8 @@ const ProjectCard = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`bg-[url('/images/project-bg.png')] dark:bg-[url('/images/project-dark-bg.png')] bg-cover rounded-2xl w-full flex flex-col pointer-events-auto relative z-10 min-h-[271px] pb-4 transition-all duration-300 ${
+          isDone ? 'opacity-50 grayscale-[85%] hover:opacity-80 transition-opacity' : ''
+        } ${
           isDragOver 
             ? "ring-4 ring-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.6)] scale-[1.02]" 
             : ""
@@ -176,7 +179,11 @@ const ProjectCard = ({
 
           {/* Studentlar va bo'sh slotlar gridi (max 8 ta slot, 4 tadan 2 qator) */}
           <div className="grid grid-cols-4 gap-x-2 gap-y-3">
-            {visibleStudents.map((student, idx) => {
+            {[...visibleStudents].sort((a, b) => {
+              if (a.isLeader && !b.isLeader) return -1;
+              if (!a.isLeader && b.isLeader) return 1;
+              return 0;
+            }).map((student, idx) => {
               const isStudentMenuOpen = activeStudentMenu === student.id;
               return (
                 <div key={idx} className="flex flex-col items-center relative student-avatar-container">

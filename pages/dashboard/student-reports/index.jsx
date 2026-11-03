@@ -168,6 +168,8 @@ export default function StudentReportListPage() {
                                     <tr>
                                         <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportStudent' })}</th>
                                         <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: 'reportCode' })}</th>
+                                        <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: 'reportName' })}</th>
+                                        <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: 'reportType' })}</th>
                                         <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: '状態' })}</th>
                                         <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: 'reportHours' })}</th>
                                         <th className="px-4 py-3 font-medium" />
@@ -176,15 +178,17 @@ export default function StudentReportListPage() {
                                 <tbody>
                                     {items.length === 0 && (
                                         <tr>
-                                            <td colSpan={5} className="px-4 py-8 text-center text-kanri-third dark:text-gray-400">
+                                            <td colSpan={7} className="px-4 py-8 text-center text-kanri-third dark:text-gray-400">
                                                 {intl.formatMessage({ id: 'reportEmpty' })}
                                             </td>
                                         </tr>
                                     )}
                                     {visibleItems.map((item) => (
-                                        <tr key={item.student_id} className="border-t border-[#E4E9EE] dark:border-gray-700/60">
+                                        <tr key={item.report_id || item.student_id} className="border-t border-[#E4E9EE] dark:border-gray-700/60">
                                             <td className="px-4 py-3 font-medium text-[#122B31] dark:text-white">{item.student_name}</td>
                                             <td className="px-3 py-3 text-kanri-third dark:text-gray-300">{item.student_code}</td>
+                                            <td className="px-3 py-3 text-[#122B31] dark:text-white">{item.title || '—'}</td>
+                                            <td className="px-3 py-3 uppercase text-xs text-kanri-third dark:text-gray-300">{item.report_type || '—'}</td>
                                             <td className="px-3 py-3"><StatusBadge status={item.status} /></td>
                                             <td className="px-3 py-3 text-[#122B31] dark:text-white">{formatHours(item.total_minutes)}</td>
                                             <td className="px-4 py-3 text-right">

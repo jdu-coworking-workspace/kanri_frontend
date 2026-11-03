@@ -59,6 +59,7 @@ export default function StudentListFilter({ onOpenCreate, readOnly = false }) {
         { value: "7-semestr", label: intl.formatMessage({ id: 'semester7' }) },
         { value: "8-semestr", label: intl.formatMessage({ id: 'semester8' }) },
         { value: "9-semestr", label: intl.formatMessage({ id: 'semester9' }) },
+        { value: "卒業", label: intl.formatMessage({ id: 'graduated' }) },
     ];
 
     return (
@@ -69,7 +70,7 @@ export default function StudentListFilter({ onOpenCreate, readOnly = false }) {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleSearch}
-                    placeholder={intl.formatMessage({ id: '学生名で絞り込み' })} 
+                    placeholder={intl.formatMessage({ id: '氏名・フリガナ・学籍番号' })} 
                 />
                 {!readOnly && (
                 <div className="flex sm:justify-start justify-end">
