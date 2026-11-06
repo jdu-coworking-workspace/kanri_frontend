@@ -4,7 +4,12 @@ const rawBase =
 	typeof window !== "undefined" && window.location.protocol === "https:"
 		? "/api/v1/"
 		: configuredBase;
-const BASE_URL = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
+const BASE_URL =
+	typeof window !== "undefined" && rawBase.startsWith("/")
+		? new URL(rawBase, window.location.origin).toString()
+		: rawBase.endsWith("/")
+			? rawBase
+			: `${rawBase}/`;
 
 // auth fetcher
 function updateOptions(options, auth) {
