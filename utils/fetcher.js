@@ -11,6 +11,18 @@ const BASE_URL =
 			? rawBase
 			: `${rawBase}/`;
 
+function resolveApiUrl(path) {
+	const url = new URL(path, BASE_URL);
+	if (
+		typeof window !== "undefined" &&
+		window.location.protocol === "https:" &&
+		url.protocol !== "https:"
+	) {
+		url.protocol = "https:";
+	}
+	return url;
+}
+
 // auth fetcher
 function updateOptions(options, auth) {
 	const headers = {
@@ -46,7 +58,7 @@ export default async function fetcher(
 
 	try {
 		const cleanUrl = url.replace(/^\/+/, "");
-		const __url = new URL(cleanUrl, BASE_URL);
+		const __url = resolveApiUrl(cleanUrl);
 
 		Object.keys(params).forEach((key) =>
 			__url.searchParams.append(key, params[key]),
