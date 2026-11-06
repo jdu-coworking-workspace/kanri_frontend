@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { X, Upload } from "lucide-react";
+import { Loader2, X, Upload } from "lucide-react";
 import { BaseInput, BaseSelect, DateInput } from "..";
 import { useIntl } from "react-intl";
 import { toast } from "react-toastify";
@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingProject = null }) {
     const intl = useIntl();
     const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -22,6 +23,7 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
 
     useEffect(() => {
         setError("");
+        setIsSubmitting(false);
         if (editingProject) {
             const reverseStatusMap = {
                 "active": "稼働中",
@@ -76,8 +78,9 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
         return dt.getFullYear() === y && dt.getMonth() === m && dt.getDate() === d;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
         if (!formData.title || !formData.title.trim()) {
             setError(intl.formatMessage({ id: 'projectNameRequired' }));
             return;
@@ -89,7 +92,12 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
         }
 
         setError("");
-        onSubmit?.(formData);
+        setIsSubmitting(true);
+        try {
+            await onSubmit?.(formData);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleFileChange = (e) => {
@@ -236,8 +244,12 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                                 onChange={handleFileChange}
                             />
                             <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full bg-[#F5F8FA] dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm flex items-center justify-between cursor-pointer hover:bg-[#EEF3F7] dark:hover:bg-gray-700/50 transition-colors"
+                                onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                                className={`w-full bg-[#F5F8FA] dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700 rounded-xl px-3.5 py-2.5 text-sm flex items-center justify-between transition-colors ${
+                                    isSubmitting
+                                        ? "cursor-not-allowed opacity-60"
+                                        : "cursor-pointer hover:bg-[#EEF3F7] dark:hover:bg-gray-700/50"
+                                }`}
                             >
                                 <span className="text-[#8897AD] dark:text-gray-400 truncate">
                                     {formData.image ? formData.image.name : intl.formatMessage({ id: '画像を選択' })}
@@ -249,7 +261,8 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                                     <img src={formData.imagePreview} alt="preview" className="w-full h-full object-cover" />
                                     <button
                                         type="button"
-                                        onClick={handleRemoveImage}
+                                        onClick={isSubmitting ? undefined : handleRemoveImage}
+                                        disabled={isSubmitting}
                                         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition-colors shadow-md"
                                         title={intl.formatMessage({ id: '削除' })}
                                     >
@@ -264,15 +277,22 @@ export default function CreateProjectModal({ isOpen, onClose, onSubmit, editingP
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="w-full py-3 px-4 bg-[#EFEFEF] hover:bg-gray-200 text-[#122B31] font-bold rounded-xl text-sm transition-colors"
+                                disabled={isSubmitting}
+                                className="w-full py-3 px-4 bg-[#EFEFEF] hover:bg-gray-200 disabled:opacity-60 disabled:cursor-not-allowed text-[#122B31] font-bold rounded-xl text-sm transition-colors"
                             >
                                 {intl.formatMessage({ id: 'キャンセル' })}
                             </button>
                             <button
                                 type="submit"
-                                className="w-full py-3 px-4 bg-[#1B2A32] hover:bg-[#122B31] text-white font-bold rounded-xl text-sm transition-colors shadow-sm"
+                                disabled={isSubmitting}
+                                className="w-full py-3 px-4 bg-[#1B2A32] hover:bg-[#122B31] disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2"
                             >
-                                {editingProject ? intl.formatMessage({ id: '保存する' }) : intl.formatMessage({ id: '追加する' })}
+                                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                {isSubmitting
+                                    ? intl.formatMessage({ id: '読み込み中...' })
+                                    : editingProject
+                                        ? intl.formatMessage({ id: '保存する' })
+                                        : intl.formatMessage({ id: '追加する' })}
                             </button>
                         </div>
                     </form>
