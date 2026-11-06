@@ -1,7 +1,11 @@
 import axios from "axios";
 
-const rawBase =
+const configuredBase =
     process.env.NEXT_PUBLIC_BASE_API_URL || "http://localhost:8000/api/v1/";
+const rawBase =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+        ? "/api/v1/"
+        : configuredBase;
 const baseURL = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
 
 const defaultAxios = axios.create({
