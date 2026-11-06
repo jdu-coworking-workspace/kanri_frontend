@@ -103,7 +103,7 @@ export default function SettingsPage({ info }) {
 
     // Fetch users list (only if admin to avoid 403 errors on mounting for staff members)
     const { data, error, isLoading } = useSWR(
-        isAdmin ? 'users' : null,
+        isAdmin ? 'users/' : null,
         (u) => fetcher(u, {}, {}, true)
     );
 
@@ -111,10 +111,10 @@ export default function SettingsPage({ info }) {
 
     const handleCreateStaff = async (staffData) => {
         try {
-            await authAxios.post('users', staffData);
+            await authAxios.post('users/', staffData);
             setIsModalOpen(false);
             // Refresh users list
-            mutate('users');
+            mutate('users/');
         } catch (error) {
             console.error("Xodim yaratishda xatolik:", error);
             if (error.response?.status === 403) {
