@@ -5,20 +5,34 @@ import { isAdminRole } from '@/utils/roles';
 import StudentLists from '@/components/custom/students/student-lists';
 import Seo from '@/components/Seo/Seo';
 import AddStudentModal from '@/components/ui/Modal/add-student-modal';
+import BulkStudentModal from '@/components/ui/Modal/bulk-student-modal';
 import { authAxios } from '@/utils/axios';
 import { mutate } from 'swr';
 import { useIntl } from 'react-intl';
 import { toast } from 'react-toastify';
 
 export default function Dashboard({ info }) {
+    const intl = useIntl();
     const currentUser = useSelector((state) => state.auth.user);
     const readOnly = !isAdminRole(currentUser?.role);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
 
     const handleOpenCreateModal = () => {
         setEditingStudent(null);
         setIsModalOpen(true);
+    };
+
+    const handleOpenBulkModal = () => {
+        setIsBulkModalOpen(true);
+    };
+
+    const handleBulkImported = (result) => {
+        mutate((key) => typeof key === 'string' && key.startsWith('students'));
+        if (result?.created_count > 0) {
+            toast.success(intl.formatMessage({ id: 'bulkSuccess' }, { count: result.created_count }));
+        }
     };
 
     const handleOpenEditModal = (student) => {
@@ -104,8 +118,6 @@ export default function Dashboard({ info }) {
         }
     };
 
-    const intl = useIntl();
-
     return (
         <>
             <Seo 
@@ -118,7 +130,11 @@ export default function Dashboard({ info }) {
 
             <div className="container mx-auto px-4">
                 <div className="flex flex-col items-start justify-between gap-5 py-3">
-                    <StudentListFilter onOpenCreate={handleOpenCreateModal} readOnly={readOnly} />
+                    <StudentListFilter
+                        onOpenCreate={handleOpenCreateModal}
+                        onOpenBulk={handleOpenBulkModal}
+                        readOnly={readOnly}
+                    />
 
                     <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-6 sm:p-8 bg-white dark:bg-gray-800 border border-transparent dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px] transition-colors duration-300">
                         <StudentLists onOpenEdit={handleOpenEditModal} readOnly={readOnly} />
@@ -136,6 +152,12 @@ export default function Dashboard({ info }) {
                 onSubmit={handleStudentModalSubmit}
                 onDelete={handleDeleteStudent}
                 editingStudent={editingStudent}
+            />
+
+            <BulkStudentModal
+                isOpen={isBulkModalOpen}
+                onClose={() => setIsBulkModalOpen(false)}
+                onImported={handleBulkImported}
             />
         </>
     );
