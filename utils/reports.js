@@ -1,5 +1,35 @@
 import { authAxios } from '@/utils/axios';
 
+// Backend schemas/work_report.py bilan bir xil limitlar.
+export const MAX_MEMO_LENGTH = 2000;
+export const MAX_WEEK_NOTE_LENGTH = 4000;
+export const MAX_REVIEW_NOTE_LENGTH = 4000;
+export const MAX_WORK_MINUTES = 1440;
+export const MAX_OUTPUT_COUNT = 100000;
+
+// Eski hisobotlarda saqlanib qolgan yaponcha default label'lar.
+const LEGACY_CONDITION_LABELS = {
+    1: ['[条件１]', '[条件1]', '条件１', '条件1'],
+    2: ['[条件２]', '[条件2]', '条件２', '条件2'],
+};
+
+export function conditionLabel(report, index, intl) {
+    const raw = index === 1 ? report?.condition_1_label : report?.condition_2_label;
+    const fallbackId = index === 1 ? 'reportWorkType1' : 'reportWorkType2';
+    const value = String(raw ?? '').trim();
+    if (!value) return intl.formatMessage({ id: fallbackId });
+    if ((LEGACY_CONDITION_LABELS[index] || []).includes(value)) {
+        return intl.formatMessage({ id: fallbackId });
+    }
+    return value;
+}
+
+export function reportTypeLabel(reportType, intl) {
+    if (reportType === 'output') return intl.formatMessage({ id: 'reportTypeOutput' });
+    if (reportType === 'hourly') return intl.formatMessage({ id: 'reportTypeHourly' });
+    return '—';
+}
+
 export function formatHours(minutes) {
     const total = Number(minutes) || 0;
     const hours = Math.floor(total / 60);
@@ -155,6 +185,10 @@ export function mergeDays(year, month, serverDays, reportType = 'hourly') {
 }
 
 export function reportPayload(year, month, weeks, days) {
+    const numeric = (value) => {
+        const parsed = parseNumericInput(value);
+        return parsed.ok ? parsed.value : null;
+    };
     return {
         year,
         month,
@@ -169,9 +203,9 @@ export function reportPayload(year, month, weeks, days) {
             start_time: day.is_day_off ? null : (day.start_time || null),
             finish_time: day.is_day_off ? null : (day.finish_time || null),
             description: day.is_day_off ? null : (day.description?.trim() ? day.description.trim() : null),
-            work_minutes: day.is_day_off || day.work_minutes === '' ? null : Number(day.work_minutes),
-            count_1: day.is_day_off || day.count_1 === '' ? null : Number(day.count_1),
-            count_2: day.is_day_off || day.count_2 === '' ? null : Number(day.count_2),
+            work_minutes: day.is_day_off ? null : numeric(day.work_minutes),
+            count_1: day.is_day_off ? null : numeric(day.count_1),
+            count_2: day.is_day_off ? null : numeric(day.count_2),
         })),
     };
 }
@@ -181,11 +215,33 @@ export function timeOrderInvalid(start, finish) {
     return start > finish;
 }
 
+export function parseNumericInput(raw) {
+    const text = String(raw ?? '').trim();
+    if (!text) return { ok: true, value: null };
+    if (!/^\d+$/.test(text)) return { ok: false, value: null };
+    return { ok: true, value: Number(text) };
+}
+
+// 成果制: faqat biror maydoni kiritilgan kun "kiritilgan" hisoblanadi.
+export function outputRowEntered(day) {
+    if (!day || day.is_day_off) return false;
+    return Boolean(
+        Number(day.work_minutes) > 0
+        || Number(day.count_1) > 0
+        || Number(day.count_2) > 0
+        || String(day.description ?? '').trim(),
+    );
+}
+
+// 成果制: kiritilgan kun uchun ish vaqti (daqiqa) majburiy.
+export function outputRowComplete(day) {
+    if (!day || day.is_day_off) return true;
+    return Number(day.work_minutes) > 0;
+}
+
 export function isDayComplete(day, reportType = 'hourly') {
     if (day.is_day_off) return true;
-    if (reportType === 'output') {
-        return Number(day.work_minutes) > 0;
-    }
+    if (reportType === 'output') return outputRowComplete(day);
     return Boolean(
         day.start_time
         && day.finish_time
@@ -194,8 +250,56 @@ export function isDayComplete(day, reportType = 'hourly') {
     );
 }
 
+export function hasOutputData(day) {
+    return outputRowEntered(day);
+}
+
 export function isReportComplete(days, reportType = 'hourly') {
+    if (reportType === 'output') {
+        // 成果制: ishbay — oyning barcha kunlari shart emas, faqat
+        // ma'lumot kiritilgan kunlar to'liq bo'lishi kerak.
+        const filled = days.filter((day) => outputRowEntered(day));
+        return filled.length > 0 && filled.every((day) => outputRowComplete(day));
+    }
     return days.every((day) => isDayComplete(day, reportType));
+}
+
+export function hasAnyOutputEntry(days) {
+    return days.some((day) => outputRowEntered(day));
+}
+
+// Qatorni qizil ko'rsatish qoidasi: faqat kiritilgan, lekin to'liq bo'lmagan kun.
+export function isDayMissing(day, reportType = 'hourly') {
+    if (day.is_day_off) return false;
+    if (reportType === 'output') return outputRowEntered(day) && !outputRowComplete(day);
+    return !isDayComplete(day, reportType);
+}
+
+export function validateReportDays(days, reportType = 'hourly') {
+    const errors = [];
+    days.forEach((day) => {
+        if (day.is_day_off) return;
+        if (String(day.description ?? '').length > MAX_MEMO_LENGTH) {
+            errors.push({ work_date: day.work_date, field: 'description', code: 'reportMemoTooLong' });
+        }
+        if (reportType !== 'output') return;
+
+        const minutes = parseNumericInput(day.work_minutes);
+        if (!minutes.ok || (minutes.value != null && minutes.value > MAX_WORK_MINUTES)) {
+            errors.push({ work_date: day.work_date, field: 'work_minutes', code: 'reportWorkMinutesRange' });
+        }
+        [['count_1', 'reportCountRange'], ['count_2', 'reportCountRange']].forEach(([field, code]) => {
+            const parsed = parseNumericInput(day[field]);
+            if (!parsed.ok || (parsed.value != null && parsed.value > MAX_OUTPUT_COUNT)) {
+                errors.push({ work_date: day.work_date, field, code });
+            }
+        });
+    });
+    return errors;
+}
+
+export function validateWeekNotes(weeks) {
+    return Object.values(weeks || {}).some((value) => String(value ?? '').length > MAX_WEEK_NOTE_LENGTH);
 }
 
 const CODE_MESSAGE = {

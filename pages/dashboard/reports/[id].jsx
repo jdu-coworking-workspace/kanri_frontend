@@ -12,15 +12,23 @@ import { authAxios } from '@/utils/axios';
 import fetcher from '@/utils/fetcher';
 import {
     apiErrorMessage,
+    conditionLabel,
     dateLocale,
     durationMinutes,
     formatHours,
-    isDayComplete,
+    hasAnyOutputEntry,
+    isDayMissing,
     isReportComplete,
+    MAX_MEMO_LENGTH,
+    MAX_OUTPUT_COUNT,
+    MAX_WEEK_NOTE_LENGTH,
+    MAX_WORK_MINUTES,
     mergeDays,
     parseClockInput,
     reportPayload,
     timeOrderInvalid,
+    validateReportDays,
+    validateWeekNotes,
 } from '@/utils/reports';
 import TimeField from '@/components/custom/reports/time-field';
 
@@ -41,6 +49,7 @@ export default function StudentReportEditorPage() {
     const [submitting, setSubmitting] = useState(false);
     const [dayOffDate, setDayOffDate] = useState(null);
     const [showMissing, setShowMissing] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
     const editable = Boolean(report?.editable);
     const locale = dateLocale(intl.locale);
     const snapshot = report
@@ -53,6 +62,9 @@ export default function StudentReportEditorPage() {
                 day.start_time || '',
                 day.finish_time || '',
                 day.description || '',
+                day.work_minutes ?? '',
+                day.count_1 ?? '',
+                day.count_2 ?? '',
                 day.is_day_off ? '1' : '0',
             ].join('|')),
         ].join(';')
@@ -75,12 +87,19 @@ export default function StudentReportEditorPage() {
         (sum, day) => sum + (day.is_day_off ? 0 : (isOutput ? Number(day.work_minutes) || 0 : durationMinutes(day.start_time, day.finish_time))),
         0,
     );
+    const totalCount1 = days.reduce((sum, day) => sum + (day.is_day_off ? 0 : Number(day.count_1) || 0), 0);
+    const totalCount2 = days.reduce((sum, day) => sum + (day.is_day_off ? 0 : Number(day.count_2) || 0), 0);
     const hydrated = Boolean(report && days.length === report.day_count);
     const monthTitle = report
         ? new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(report.year, report.month - 1, 1))
         : intl.formatMessage({ id: 'reportTitle' });
 
     const updateDay = (workDate, patch) => {
+        setFieldErrors((current) => {
+            const next = { ...current };
+            Object.keys(patch).forEach((field) => delete next[`${workDate}|${field}`]);
+            return next;
+        });
         setDays((current) => current.map((day) => (day.work_date === workDate ? { ...day, ...patch } : day)));
     };
 
@@ -110,11 +129,12 @@ export default function StudentReportEditorPage() {
                 };
             }
             if (isOutput) {
+                // Qiymatlar string holida saqlanadi: noto'g'ri sonni 0 ga aylantirmaslik uchun.
                 return {
                     ...day,
-                    work_minutes: Number(readField(day.work_date, 'work_minutes') ?? day.work_minutes) || 0,
-                    count_1: Number(readField(day.work_date, 'count_1') ?? day.count_1) || 0,
-                    count_2: Number(readField(day.work_date, 'count_2') ?? day.count_2) || 0,
+                    work_minutes: readField(day.work_date, 'work_minutes') ?? (day.work_minutes ?? ''),
+                    count_1: readField(day.work_date, 'count_1') ?? (day.count_1 ?? ''),
+                    count_2: readField(day.work_date, 'count_2') ?? (day.count_2 ?? ''),
                     description: readField(day.work_date, 'description') ?? day.description,
                     is_day_off: false,
                 };
@@ -131,6 +151,21 @@ export default function StudentReportEditorPage() {
             };
         });
         return invalidTime ? null : next;
+    };
+
+    const firstValidationError = (currentDays) => {
+        if (validateWeekNotes(weeks)) return 'reportWeekNoteTooLong';
+        const errors = validateReportDays(currentDays, report.report_type);
+        if (errors.length === 0) {
+            setFieldErrors({});
+            return null;
+        }
+        const next = {};
+        errors.forEach((error) => {
+            next[`${error.work_date}|${error.field}`] = error.code;
+        });
+        setFieldErrors(next);
+        return errors[0].code;
     };
 
     const askDayOff = (workDate) => {
@@ -168,11 +203,18 @@ export default function StudentReportEditorPage() {
         }
         setDays(currentDays);
         if (rejectTimeOrder(currentDays)) return;
+        const validationError = firstValidationError(currentDays);
+        if (validationError) {
+            toast.error(intl.formatMessage({ id: validationError }));
+            return;
+        }
         setSaving(true);
         try {
             await authAxios.put(`reports/me/${reportId}`, reportPayload(report.year, report.month, weeks, currentDays));
             await mutate();
             mutateCache('reports/me');
+            setShowMissing(false);
+            setFieldErrors({});
             toast.success(intl.formatMessage({ id: 'reportSaved' }));
         } catch (saveError) {
             toast.error(apiErrorMessage(saveError, intl));
@@ -189,9 +231,17 @@ export default function StudentReportEditorPage() {
         }
         setDays(currentDays);
         if (rejectTimeOrder(currentDays)) return;
+        const validationError = firstValidationError(currentDays);
+        if (validationError) {
+            toast.error(intl.formatMessage({ id: validationError }));
+            return;
+        }
         if (!isReportComplete(currentDays, report.report_type)) {
             setShowMissing(true);
-            toast.error(intl.formatMessage({ id: 'reportIncomplete' }));
+            const messageId = report.report_type === 'output'
+                ? (hasAnyOutputEntry(currentDays) ? 'reportOutputIncomplete' : 'reportOutputEmpty')
+                : 'reportIncomplete';
+            toast.error(intl.formatMessage({ id: messageId }));
             return;
         }
         setShowMissing(false);
@@ -268,9 +318,9 @@ export default function StudentReportEditorPage() {
                                         <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportDay' })}</th>
                                         {isOutput ? (
                                             <>
-                                                <th className="px-4 py-3 font-medium">Work minutes</th>
-                                                <th className="px-4 py-3 font-medium">{report.condition_1_label || 'Condition 1'}</th>
-                                                <th className="px-4 py-3 font-medium">{report.condition_2_label || 'Condition 2'}</th>
+                                                <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportWorkMinutes' })}</th>
+                                                <th className="px-4 py-3 font-medium">{conditionLabel(report, 1, intl)}</th>
+                                                <th className="px-4 py-3 font-medium">{conditionLabel(report, 2, intl)}</th>
                                             </>
                                         ) : (
                                             <>
@@ -280,26 +330,33 @@ export default function StudentReportEditorPage() {
                                         )}
                                         <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportHours' })}</th>
                                         <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportMemo' })}</th>
-                                        <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportDayOff' })}</th>
+                                        {!isOutput && (
+                                            <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportDayOff' })}</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {days.map((day) => {
                                         const [dayYear, dayMonth, dayDate] = day.work_date.split('-').map(Number);
                                         const date = new Date(dayYear, dayMonth - 1, dayDate);
-                                        const minutes = day.is_day_off ? 0 : durationMinutes(day.start_time, day.finish_time);
-                                        const invalidOrder = !day.is_day_off && timeOrderInvalid(day.start_time, day.finish_time);
-                                        const missing = showMissing && !isDayComplete(day);
+                                        const minutes = isOutput
+                                            ? (Number(day.work_minutes) || 0)
+                                            : durationMinutes(day.start_time, day.finish_time);
+                                        const invalidOrder = !isOutput && !day.is_day_off && timeOrderInvalid(day.start_time, day.finish_time);
+                                        // 成果制: bo'sh kunlar talab qilinmaydi, faqat kiritilgan kunlar tekshiriladi.
+                                        const missing = showMissing && isDayMissing(day, report.report_type);
                                         const quiet = day.is_day_off ? 'text-kanri-third dark:text-gray-400' : 'text-[#122B31] dark:text-white';
                                         return (
                                             <tr
                                                 key={day.work_date}
                                                 className={`border-t border-[#E4E9EE] dark:border-gray-700/60 ${missing ? 'bg-red-50 dark:bg-red-950/30' : ''}`}
                                             >
-                                                <td className={`px-5 py-3.5 align-top whitespace-nowrap font-medium ${quiet}`}>
-                                                    {date.toLocaleDateString(locale, { month: 'numeric', day: 'numeric', weekday: 'short' })}
+                                                <td className={`px-5 py-3.5 align-top font-medium ${quiet}`}>
+                                                    <span className="block whitespace-nowrap">
+                                                        {date.toLocaleDateString(locale, { month: 'numeric', day: 'numeric', weekday: 'short' })}
+                                                    </span>
                                                     {missing && (
-                                                        <span className="mt-1.5 inline-flex items-center rounded-md bg-red-600 px-1.5 py-0.5 align-middle text-[11px] font-semibold leading-4 text-white">
+                                                        <span className="mt-1.5 inline-flex items-center rounded-md bg-red-600 px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-white">
                                                             {intl.formatMessage({ id: 'reportDayRequiredShort' })}
                                                         </span>
                                                     )}
@@ -307,13 +364,58 @@ export default function StudentReportEditorPage() {
                                                 {isOutput ? (
                                                     <>
                                                         <td className="px-4 py-3.5 align-top">
-                                                            <input type="number" min="0" max="1440" value={day.work_minutes} disabled={!editable || day.is_day_off} data-report-date={day.work_date} data-report-field="work_minutes" onChange={(event) => updateDay(day.work_date, { work_minutes: event.target.value })} className="w-28 rounded-xl border border-[#E4E9EE] bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max={MAX_WORK_MINUTES}
+                                                                step="1"
+                                                                value={day.work_minutes}
+                                                                disabled={!editable || day.is_day_off}
+                                                                data-report-date={day.work_date}
+                                                                data-report-field="work_minutes"
+                                                                onChange={(event) => updateDay(day.work_date, { work_minutes: event.target.value })}
+                                                                className={`w-28 rounded-xl border bg-white px-3 py-2 dark:bg-gray-900 ${
+                                                                    fieldErrors[`${day.work_date}|work_minutes`]
+                                                                        ? 'border-red-500'
+                                                                        : 'border-[#E4E9EE] dark:border-gray-700'
+                                                                }`}
+                                                            />
                                                         </td>
                                                         <td className="px-4 py-3.5 align-top">
-                                                            <input type="number" min="0" value={day.count_1} disabled={!editable || day.is_day_off} data-report-date={day.work_date} data-report-field="count_1" onChange={(event) => updateDay(day.work_date, { count_1: event.target.value })} className="w-24 rounded-xl border border-[#E4E9EE] bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max={MAX_OUTPUT_COUNT}
+                                                                step="1"
+                                                                value={day.count_1}
+                                                                disabled={!editable || day.is_day_off}
+                                                                data-report-date={day.work_date}
+                                                                data-report-field="count_1"
+                                                                onChange={(event) => updateDay(day.work_date, { count_1: event.target.value })}
+                                                                className={`w-24 rounded-xl border bg-white px-3 py-2 dark:bg-gray-900 ${
+                                                                    fieldErrors[`${day.work_date}|count_1`]
+                                                                        ? 'border-red-500'
+                                                                        : 'border-[#E4E9EE] dark:border-gray-700'
+                                                                }`}
+                                                            />
                                                         </td>
                                                         <td className="px-4 py-3.5 align-top">
-                                                            <input type="number" min="0" value={day.count_2} disabled={!editable || day.is_day_off} data-report-date={day.work_date} data-report-field="count_2" onChange={(event) => updateDay(day.work_date, { count_2: event.target.value })} className="w-24 rounded-xl border border-[#E4E9EE] bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900" />
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max={MAX_OUTPUT_COUNT}
+                                                                step="1"
+                                                                value={day.count_2}
+                                                                disabled={!editable || day.is_day_off}
+                                                                data-report-date={day.work_date}
+                                                                data-report-field="count_2"
+                                                                onChange={(event) => updateDay(day.work_date, { count_2: event.target.value })}
+                                                                className={`w-24 rounded-xl border bg-white px-3 py-2 dark:bg-gray-900 ${
+                                                                    fieldErrors[`${day.work_date}|count_2`]
+                                                                        ? 'border-red-500'
+                                                                        : 'border-[#E4E9EE] dark:border-gray-700'
+                                                                }`}
+                                                            />
                                                         </td>
                                                     </>
                                                 ) : (
@@ -349,30 +451,40 @@ export default function StudentReportEditorPage() {
                                                 <td className="px-5 py-3.5 align-top">
                                                     <textarea
                                                         rows={2}
+                                                        maxLength={MAX_MEMO_LENGTH}
                                                         data-report-date={day.work_date}
                                                         data-report-field="description"
                                                         value={day.description}
                                                         disabled={!editable || day.is_day_off}
                                                         placeholder={intl.formatMessage({ id: 'reportMemoPlaceholder' })}
                                                         onChange={(event) => updateDay(day.work_date, { description: event.target.value })}
-                                                        className="w-full min-w-[18rem] resize-y rounded-xl border border-[#E4E9EE] dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm leading-6 text-[#122B31] dark:text-white placeholder:text-[#8897AD] disabled:opacity-60"
-                                                    />
-                                                </td>
-                                                <td className="px-5 py-3.5 align-top">
-                                                    <button
-                                                        type="button"
-                                                        disabled={!editable}
-                                                        onClick={() => askDayOff(day.work_date)}
-                                                        aria-pressed={day.is_day_off}
-                                                        className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
-                                                            day.is_day_off
-                                                                ? 'bg-[#122B31] text-white dark:bg-white dark:text-[#122B31]'
-                                                                : 'border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-900 text-[#122B31] dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                        className={`w-full min-w-[18rem] resize-y rounded-xl border bg-white px-3 py-2.5 text-sm leading-6 text-[#122B31] dark:bg-gray-900 dark:text-white placeholder:text-[#8897AD] disabled:opacity-60 ${
+                                                            fieldErrors[`${day.work_date}|description`]
+                                                                ? 'border-red-500'
+                                                                : 'border-[#E4E9EE] dark:border-gray-700'
                                                         }`}
-                                                    >
-                                                        {intl.formatMessage({ id: 'reportDayOff' })}
-                                                    </button>
+                                                    />
+                                                    <span className="mt-1 block text-right text-[11px] tabular-nums text-kanri-third dark:text-gray-400">
+                                                        {(day.description || '').length} / {MAX_MEMO_LENGTH}
+                                                    </span>
                                                 </td>
+                                                {!isOutput && (
+                                                    <td className="px-5 py-3.5 align-top">
+                                                        <button
+                                                            type="button"
+                                                            disabled={!editable}
+                                                            onClick={() => askDayOff(day.work_date)}
+                                                            aria-pressed={day.is_day_off}
+                                                            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-60 ${
+                                                                day.is_day_off
+                                                                    ? 'bg-[#122B31] text-white dark:bg-white dark:text-[#122B31]'
+                                                                    : 'border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-900 text-[#122B31] dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                                                            }`}
+                                                        >
+                                                            {intl.formatMessage({ id: 'reportDayOff' })}
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })}
@@ -385,11 +497,27 @@ export default function StudentReportEditorPage() {
                                         <td className="px-4 py-3.5 font-bold tabular-nums text-[#122B31] dark:text-white">
                                             {formatHours(hydrated ? totalMinutes : report.total_minutes)}
                                         </td>
-                                        <td className="px-5 py-3.5" colSpan={2} />
+                                        <td className="px-5 py-3.5" colSpan={isOutput ? 1 : 2} />
                                     </tr>
+                                    {isOutput && (
+                                        <tr className="border-t border-[#E4E9EE] dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/40">
+                                            <td className="px-5 py-3.5 font-bold text-[#122B31] dark:text-white" colSpan={4}>
+                                                {intl.formatMessage({ id: 'reportTotalDeliverables' })}
+                                            </td>
+                                            <td className="px-4 py-3.5 font-bold tabular-nums text-[#122B31] dark:text-white">
+                                                {totalCount1} / {totalCount2}
+                                            </td>
+                                            <td className="px-5 py-3.5" />
+                                        </tr>
+                                    )}
                                 </tfoot>
                             </table>
                         </div>
+                        {isOutput && (
+                            <p className="border-t border-[#E4E9EE] dark:border-gray-700/60 px-5 py-3 text-xs leading-5 text-kanri-third dark:text-gray-400">
+                                {intl.formatMessage({ id: 'reportOutputDaysHint' })}
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -404,6 +532,7 @@ export default function StudentReportEditorPage() {
                                     {intl.formatMessage({ id: 'reportWeek' }, { week })}
                                     <textarea
                                         rows={2}
+                                        maxLength={MAX_WEEK_NOTE_LENGTH}
                                         value={weeks[`week_${week}`]}
                                         disabled={!editable}
                                         onChange={(event) => setWeeks((current) => ({ ...current, [`week_${week}`]: event.target.value }))}

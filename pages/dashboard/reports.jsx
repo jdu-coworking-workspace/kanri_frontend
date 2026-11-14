@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/custom/reports/report-ui';
 import Seo from '@/components/Seo/Seo';
 import { authAxios } from '@/utils/axios';
 import fetcher from '@/utils/fetcher';
-import { apiErrorMessage, dateLocale, formatHours } from '@/utils/reports';
+import { apiErrorMessage, dateLocale, formatHours, reportTypeLabel } from '@/utils/reports';
 
 function monthName(year, month, locale, withYear = false) {
     return new Intl.DateTimeFormat(dateLocale(locale), withYear ? { month: 'long', year: 'numeric' } : { month: 'long' }).format(
@@ -178,7 +178,12 @@ export default function StudentReportsPage() {
                 {items.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                         {items.map((item) => {
-                            const progress = item.day_count ? Math.round((item.filled_days / item.day_count) * 100) : 0;
+                            const isOutputItem = item.report_type === 'output';
+                            // 成果制: ishbay — progress faqat kiritilgan kunlar bo'yicha.
+                            const progressTotal = isOutputItem ? (item.entry_count || 0) : item.day_count;
+                            const progress = progressTotal
+                                ? Math.round((item.filled_days / progressTotal) * 100)
+                                : 0;
                             return (
                                 <Link
                                     key={item.id}
@@ -194,13 +199,13 @@ export default function StudentReportsPage() {
                                                 {monthName(item.year, item.month, intl.locale)}
                                             </h2>
                                             <p className="mt-1 text-sm font-medium text-kanri-third dark:text-gray-400">
-                                                {item.title || 'Untitled report'}
+                                                {item.title || intl.formatMessage({ id: 'reportUntitled' })}
                                             </p>
                                         </div>
                                         <StatusBadge status={item.status} />
                                     </div>
                                     <span className="mt-3 w-fit rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-neutral-600 dark:bg-neutral-900 dark:text-neutral-300">
-                                        {item.report_type || 'hourly'}
+                                        {reportTypeLabel(item.report_type, intl)}
                                     </span>
                                     <p className="mt-5 text-3xl font-semibold tabular-nums text-black dark:text-white">
                                         {formatHours(item.total_minutes)}
@@ -212,7 +217,9 @@ export default function StudentReportsPage() {
                                         <div className="h-full rounded-full bg-black dark:bg-white" style={{ width: `${progress}%` }} />
                                     </div>
                                     <p className="mt-2 text-xs text-kanri-third dark:text-gray-400">
-                                        {intl.formatMessage({ id: 'reportFilled' })} {item.filled_days}/{item.day_count}
+                                        {isOutputItem
+                                            ? intl.formatMessage({ id: 'reportFilledEntries' }, { count: item.entry_count || 0 })
+                                            : `${intl.formatMessage({ id: 'reportFilled' })} ${item.filled_days}/${item.day_count}`}
                                     </p>
                                     {item.review_note && (
                                         <p className={`mt-4 rounded-2xl px-3 py-2 text-sm ${noteClass(item.status)}`}>
