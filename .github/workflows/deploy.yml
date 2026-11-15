@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20" # serverdagi Node bilan bir xil
+          node-version: "22" # serverdagi Node bilan bir xil
           cache: npm
 
       # NODE_ENV=production qo'yilmaydi, aks holda devDependencies
