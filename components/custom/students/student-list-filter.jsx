@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { useIntl } from 'react-intl';
 import { useRouter } from 'next/router';
 
-export default function StudentListFilter({ onOpenCreate, readOnly = false }) {
+export default function StudentListFilter({ onOpenCreate, onOpenBulk, readOnly = false }) {
     const intl = useIntl();
     const router = useRouter();
 
@@ -73,7 +73,16 @@ export default function StudentListFilter({ onOpenCreate, readOnly = false }) {
                     placeholder={intl.formatMessage({ id: '氏名・フリガナ・学籍番号' })} 
                 />
                 {!readOnly && (
-                <div className="flex sm:justify-start justify-end">
+                <div className="flex sm:justify-start justify-end gap-2">
+                    <Button
+                        variant="secondary"
+                        onClick={onOpenBulk}
+                        leftIcon={`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 9.33325V2.33325M7 2.33325L4.08333 5.24992M7 2.33325L9.91667 5.24992M2.33333 9.91659V10.4999C2.33333 11.1443 2.85567 11.6666 3.5 11.6666H10.5C11.1443 11.6666 11.6667 11.1443 11.6667 10.4999V9.91659" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`}
+                    >
+                        {intl.formatMessage({ id: 'bulkStudentAdd' })}
+                    </Button>
                     <Button
                         onClick={onOpenCreate}
                         leftIcon={`<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">

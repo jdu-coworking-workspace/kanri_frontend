@@ -16,6 +16,7 @@ import {
     downloadPeriodReports,
     formatHours,
     readPeriod,
+    reportTypeLabel,
 } from '@/utils/reports';
 import { isAdminRole } from '@/utils/roles';
 
@@ -188,7 +189,7 @@ export default function StudentReportListPage() {
                                             <td className="px-4 py-3 font-medium text-[#122B31] dark:text-white">{item.student_name}</td>
                                             <td className="px-3 py-3 text-kanri-third dark:text-gray-300">{item.student_code}</td>
                                             <td className="px-3 py-3 text-[#122B31] dark:text-white">{item.title || '—'}</td>
-                                            <td className="px-3 py-3 uppercase text-xs text-kanri-third dark:text-gray-300">{item.report_type || '—'}</td>
+                                            <td className="px-3 py-3 text-xs text-kanri-third dark:text-gray-300">{reportTypeLabel(item.report_type, intl)}</td>
                                             <td className="px-3 py-3"><StatusBadge status={item.status} /></td>
                                             <td className="px-3 py-3 text-[#122B31] dark:text-white">{formatHours(item.total_minutes)}</td>
                                             <td className="px-4 py-3 text-right">

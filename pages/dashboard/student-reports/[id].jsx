@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/custom/reports/report-ui';
 import Seo from '@/components/Seo/Seo';
 import { authAxios } from '@/utils/axios';
 import fetcher from '@/utils/fetcher';
-import { apiErrorMessage, dateLocale, downloadMonthlyReport, formatHours } from '@/utils/reports';
+import { apiErrorMessage, conditionLabel, dateLocale, downloadMonthlyReport, formatHours, hasOutputData, MAX_REVIEW_NOTE_LENGTH } from '@/utils/reports';
 import { isAdminRole } from '@/utils/roles';
 
 export default function StudentReportDetailPage() {
@@ -29,6 +29,13 @@ export default function StudentReportDetailPage() {
     const [pending, setPending] = useState('');
     const locale = dateLocale(intl.locale);
     const canReview = isAdmin && report?.status === 'submitted';
+    const isOutput = report?.report_type === 'output';
+    const condition1 = conditionLabel(report, 1, intl);
+    const condition2 = conditionLabel(report, 2, intl);
+    // 成果制 (output) ishbay: bo'sh kunlar ko'rsatilmaydi, faqat kiritilgan kunlar.
+    const visibleDays = isOutput
+        ? (report?.days || []).filter((day) => day.is_day_off || hasOutputData(day))
+        : (report?.days || []);
     const monthTitle = report
         ? new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(report.year, report.month - 1, 1))
         : '';
@@ -94,7 +101,9 @@ export default function StudentReportDetailPage() {
                         {report && (
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                 <StatusBadge status={report.status} />
-                                <span className="text-sm font-medium text-[#122B31] dark:text-white">{monthTitle}</span>
+                                <span className="text-sm font-medium text-[#122B31] dark:text-white">
+                                    {report.title ? `${report.title} · ${monthTitle}` : monthTitle}
+                                </span>
                                 <span className="text-sm text-kanri-third dark:text-gray-400">
                                     {intl.formatMessage({ id: 'reportTotal' })} {formatHours(report.total_minutes)}
                                 </span>
@@ -141,14 +150,24 @@ export default function StudentReportDetailPage() {
                                 <thead className="bg-gray-50 dark:bg-gray-900/40 text-left text-kanri-third dark:text-gray-400">
                                     <tr>
                                         <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportDay' })}</th>
-                                        <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportStart' })}</th>
-                                        <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportFinish' })}</th>
-                                        <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportHours' })}</th>
+                                        {isOutput ? (
+                                            <>
+                                                <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportWorkMinutes' })}</th>
+                                                <th className="px-4 py-3 font-medium">{condition1}</th>
+                                                <th className="px-4 py-3 font-medium">{condition2}</th>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportStart' })}</th>
+                                                <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportFinish' })}</th>
+                                                <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportHours' })}</th>
+                                            </>
+                                        )}
                                         <th className="px-5 py-3 font-medium">{intl.formatMessage({ id: 'reportMemo' })}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {report.days.map((day) => {
+                                    {visibleDays.map((day) => {
                                         const [dayYear, dayMonth, dayDate] = day.work_date.split('-').map(Number);
                                         const date = new Date(dayYear, dayMonth - 1, dayDate);
                                         const quiet = day.is_day_off ? 'text-kanri-third dark:text-gray-400' : 'text-[#122B31] dark:text-white';
@@ -158,11 +177,27 @@ export default function StudentReportDetailPage() {
                                                     {date.toLocaleDateString(locale, { month: 'numeric', day: 'numeric', weekday: 'short' })}
                                                     {day.is_day_off ? ` · ${intl.formatMessage({ id: 'reportDayOff' })}` : ''}
                                                 </td>
-                                                <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>{day.start_time || '—'}</td>
-                                                <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>{day.finish_time || '—'}</td>
-                                                <td className={`px-4 py-3.5 align-top font-medium tabular-nums ${quiet}`}>
-                                                    {day.is_day_off ? '—' : formatHours(day.duration_minutes)}
-                                                </td>
+                                                {isOutput ? (
+                                                    <>
+                                                        <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>
+                                                            {day.is_day_off || !day.work_minutes ? '—' : formatHours(day.work_minutes)}
+                                                        </td>
+                                                        <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>
+                                                            {day.is_day_off ? '—' : (day.count_1 ?? '—')}
+                                                        </td>
+                                                        <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>
+                                                            {day.is_day_off ? '—' : (day.count_2 ?? '—')}
+                                                        </td>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>{day.start_time || '—'}</td>
+                                                        <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>{day.finish_time || '—'}</td>
+                                                        <td className={`px-4 py-3.5 align-top font-medium tabular-nums ${quiet}`}>
+                                                            {day.is_day_off ? '—' : formatHours(day.duration_minutes)}
+                                                        </td>
+                                                    </>
+                                                )}
                                                 <td className={`px-5 py-3.5 align-top leading-6 ${quiet}`}>
                                                     {day.description || '—'}
                                                 </td>
@@ -172,17 +207,32 @@ export default function StudentReportDetailPage() {
                                 </tbody>
                                 <tfoot>
                                     <tr className="border-t border-[#E4E9EE] dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/40">
-                                        <td className="px-5 py-3.5 font-bold text-[#122B31] dark:text-white" colSpan={3}>
+                                        <td className="px-5 py-3.5 font-bold text-[#122B31] dark:text-white" colSpan={isOutput ? 4 : 3}>
                                             {intl.formatMessage({ id: 'reportTotal' })}
                                         </td>
                                         <td className="px-4 py-3.5 font-bold tabular-nums text-[#122B31] dark:text-white">
                                             {formatHours(report.total_minutes)}
                                         </td>
-                                        <td className="px-5 py-3.5" />
+                                        {!isOutput && <td className="px-5 py-3.5" />}
                                     </tr>
+                                    {isOutput && (
+                                        <tr className="border-t border-[#E4E9EE] dark:border-gray-700/60 bg-gray-50 dark:bg-gray-900/40">
+                                            <td className="px-5 py-3.5 font-bold text-[#122B31] dark:text-white" colSpan={4}>
+                                                {intl.formatMessage({ id: 'reportTotalDeliverables' })}
+                                            </td>
+                                            <td className="px-4 py-3.5 font-bold tabular-nums text-[#122B31] dark:text-white">
+                                                {report.total_count_1 ?? 0} / {report.total_count_2 ?? 0}
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tfoot>
                             </table>
                         </div>
+                        {isOutput && (
+                            <p className="border-t border-[#E4E9EE] dark:border-gray-700/60 px-5 py-3 text-xs leading-5 text-kanri-third dark:text-gray-400">
+                                {intl.formatMessage({ id: 'reportOutputDaysHint' })}
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -225,6 +275,7 @@ export default function StudentReportDetailPage() {
                             {intl.formatMessage({ id: 'reportNote' })}
                             <textarea
                                 rows={3}
+                                maxLength={MAX_REVIEW_NOTE_LENGTH}
                                 value={note}
                                 placeholder={intl.formatMessage({ id: 'reportNotePlaceholder' })}
                                 onChange={(event) => setNote(event.target.value)}
