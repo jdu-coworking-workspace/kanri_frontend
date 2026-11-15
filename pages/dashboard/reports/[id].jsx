@@ -17,6 +17,7 @@ import {
     durationMinutes,
     formatHours,
     hasAnyOutputEntry,
+    hasAnyReportData,
     isDayMissing,
     isReportComplete,
     MAX_MEMO_LENGTH,
@@ -26,6 +27,7 @@ import {
     mergeDays,
     parseClockInput,
     reportPayload,
+    reportStateSignature,
     timeOrderInvalid,
     validateReportDays,
     validateWeekNotes,
@@ -50,6 +52,7 @@ export default function StudentReportEditorPage() {
     const [dayOffDate, setDayOffDate] = useState(null);
     const [showMissing, setShowMissing] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
+    const [savedSignature, setSavedSignature] = useState('');
     const editable = Boolean(report?.editable);
     const locale = dateLocale(intl.locale);
     const snapshot = report
@@ -72,14 +75,17 @@ export default function StudentReportEditorPage() {
 
     useEffect(() => {
         if (!report) return;
-        setDays(mergeDays(report.year, report.month, report.days, report.report_type));
-        setWeeks({
+        const nextDays = mergeDays(report.year, report.month, report.days, report.report_type);
+        const nextWeeks = {
             week_1: report.week_1 || '',
             week_2: report.week_2 || '',
             week_3: report.week_3 || '',
             week_4: report.week_4 || '',
             week_5: report.week_5 || '',
-        });
+        };
+        setDays(nextDays);
+        setWeeks(nextWeeks);
+        setSavedSignature(reportStateSignature(nextDays, nextWeeks));
     }, [snapshot]);
 
     const isOutput = report?.report_type === 'output';
@@ -213,6 +219,7 @@ export default function StudentReportEditorPage() {
             await authAxios.put(`reports/me/${reportId}`, reportPayload(report.year, report.month, weeks, currentDays));
             await mutate();
             mutateCache('reports/me');
+            setSavedSignature(reportStateSignature(currentDays, weeks));
             setShowMissing(false);
             setFieldErrors({});
             toast.success(intl.formatMessage({ id: 'reportSaved' }));
@@ -236,6 +243,17 @@ export default function StudentReportEditorPage() {
             toast.error(intl.formatMessage({ id: validationError }));
             return;
         }
+        // Bo'sh reportni yuborish mumkin emas.
+        if (!hasAnyReportData(currentDays, weeks, report.report_type)) {
+            setShowMissing(false);
+            toast.error(intl.formatMessage({ id: 'reportEmptySubmit' }));
+            return;
+        }
+        // Saqlanmagan o'zgarishlar bo'lsa, avval saqlash talab qilinadi.
+        if (reportStateSignature(currentDays, weeks) !== savedSignature) {
+            toast.error(intl.formatMessage({ id: 'reportSaveFirst' }));
+            return;
+        }
         if (!isReportComplete(currentDays, report.report_type)) {
             setShowMissing(true);
             const messageId = report.report_type === 'output'
@@ -247,7 +265,6 @@ export default function StudentReportEditorPage() {
         setShowMissing(false);
         setSubmitting(true);
         try {
-            await authAxios.put(`reports/me/${reportId}`, reportPayload(report.year, report.month, weeks, currentDays));
             await authAxios.post(`reports/me/${reportId}/submit`);
             await mutate();
             mutateCache('reports/me');
@@ -261,14 +278,26 @@ export default function StudentReportEditorPage() {
 
     return (
         <>
-            <Seo title={monthTitle} description={monthTitle} keywords={intl.formatMessage({ id: '成果報告' })} />
+            <Seo
+                title={report?.title ? `${report.title} · ${monthTitle}` : monthTitle}
+                description={monthTitle}
+                keywords={intl.formatMessage({ id: '成果報告' })}
+            />
             <MenuTabs />
             <div className="container mx-auto px-4 py-6 max-w-6xl flex flex-col gap-5">
                 <div className="flex flex-col gap-3 p-5 sm:p-6 bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px]">
                     <Link href="/dashboard/reports" className="w-fit text-xs font-semibold text-kanri-primary">
                         {intl.formatMessage({ id: 'reportBack' })}
                     </Link>
-                    <h1 className="text-2xl font-bold text-[#122B31] dark:text-white">{monthTitle}</h1>
+                    <h1 className="text-2xl font-bold text-[#122B31] dark:text-white">
+                        {report?.title ? (
+                            <>
+                                <span>{report.title}</span>
+                                <span className="mx-2 font-normal text-kanri-third dark:text-gray-400">·</span>
+                                <span>{monthTitle}</span>
+                            </>
+                        ) : monthTitle}
+                    </h1>
                     {report && (
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <StatusBadge status={report.status} />

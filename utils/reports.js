@@ -9,8 +9,8 @@ export const MAX_OUTPUT_COUNT = 100000;
 
 // Eski hisobotlarda saqlanib qolgan yaponcha default label'lar.
 const LEGACY_CONDITION_LABELS = {
-    1: ['[条件１]', '[条件1]', '条件１', '条件1'],
-    2: ['[条件２]', '[条件2]', '条件２', '条件2'],
+    1: ['[条件１]', '[条件1]', '条件１', '条件1', '条件 1'],
+    2: ['[条件２]', '[条件2]', '条件２', '条件2', '条件 2'],
 };
 
 export function conditionLabel(report, index, intl) {
@@ -266,6 +266,41 @@ export function isReportComplete(days, reportType = 'hourly') {
 
 export function hasAnyOutputEntry(days) {
     return days.some((day) => outputRowEntered(day));
+}
+
+// Reportda umuman biror ma'lumot kiritilganmi (kunlar yoki haftalik izohlar).
+export function hasAnyReportData(days, weeks, reportType = 'hourly') {
+    if (Object.values(weeks || {}).some((value) => String(value ?? '').trim())) return true;
+    if (reportType === 'output') return hasAnyOutputEntry(days);
+    return days.some((day) => day.is_day_off || Boolean(
+        day.start_time
+        || day.finish_time
+        || String(day.description ?? '').trim(),
+    ));
+}
+
+function normalizeNumber(value) {
+    if (value === '' || value == null) return '';
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? String(parsed) : '';
+}
+
+// Saqlangan holat bilan solishtirish uchun barqaror imzo.
+export function reportStateSignature(days, weeks) {
+    const dayPart = (days || []).map((day) => [
+        day.work_date,
+        day.is_day_off ? '1' : '0',
+        day.start_time || '',
+        day.finish_time || '',
+        String(day.description ?? '').trim(),
+        normalizeNumber(day.work_minutes),
+        normalizeNumber(day.count_1),
+        normalizeNumber(day.count_2),
+    ].join('|')).join(';');
+    const weekPart = [1, 2, 3, 4, 5]
+        .map((index) => String(weeks?.[`week_${index}`] ?? '').trim())
+        .join('|');
+    return `${dayPart}::${weekPart}`;
 }
 
 // Qatorni qizil ko'rsatish qoidasi: faqat kiritilgan, lekin to'liq bo'lmagan kun.

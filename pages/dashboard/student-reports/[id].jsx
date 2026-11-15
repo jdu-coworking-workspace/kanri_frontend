@@ -101,7 +101,9 @@ export default function StudentReportDetailPage() {
                         {report && (
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                                 <StatusBadge status={report.status} />
-                                <span className="text-sm font-medium text-[#122B31] dark:text-white">{monthTitle}</span>
+                                <span className="text-sm font-medium text-[#122B31] dark:text-white">
+                                    {report.title ? `${report.title} · ${monthTitle}` : monthTitle}
+                                </span>
                                 <span className="text-sm text-kanri-third dark:text-gray-400">
                                     {intl.formatMessage({ id: 'reportTotal' })} {formatHours(report.total_minutes)}
                                 </span>
