@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
-import { Plus } from 'lucide-react';
+import { History, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { MenuTabs } from '@/components/custom';
 import { BaseInput, BaseSelect } from '@/components/ui';
@@ -11,13 +11,12 @@ import { StatusBadge } from '@/components/custom/reports/report-ui';
 import Seo from '@/components/Seo/Seo';
 import { authAxios } from '@/utils/axios';
 import fetcher from '@/utils/fetcher';
-import { apiErrorMessage, dateLocale, formatHours, reportTypeLabel } from '@/utils/reports';
-
-function monthName(year, month, locale, withYear = false) {
-    return new Intl.DateTimeFormat(dateLocale(locale), withYear ? { month: 'long', year: 'numeric' } : { month: 'long' }).format(
-        new Date(year, month - 1, 1),
-    );
-}
+import { apiErrorMessage, formatHours, dateLocale, monthName, reportTypeLabel } from '@/utils/reports';
+// function monthName(year, month, locale, withYear = false) {
+//     return new Intl.DateTimeFormat(dateLocale(locale), withYear ? { month: 'long', year: 'numeric' } : { month: 'long' }).format(
+//         new Date(year, month - 1, 1),
+//     );
+// }
 
 function noteClass(status) {
     if (status === 'rejected') return 'bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-100';
@@ -77,9 +76,18 @@ export default function StudentReportsPage() {
             <MenuTabs />
             <div className="container mx-auto px-4 py-6 max-w-6xl flex flex-col gap-5">
                 <section className="rounded-[28px] border border-neutral-200 dark:border-gray-700 bg-white dark:bg-[url('/images/project-dark-bg.png')] dark:bg-cover dark:bg-center text-black dark:text-white px-6 py-7 sm:px-8">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
-                        {intl.formatMessage({ id: '成果報告' })}
-                    </p>
+                    <div className="flex items-start justify-between gap-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
+                            {intl.formatMessage({ id: '成果報告' })}
+                        </p>
+                        <Link
+                            href="/dashboard/reports/history"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-200 dark:border-gray-600 px-3 py-1.5 text-xs font-bold text-black dark:text-white hover:bg-neutral-50 dark:hover:bg-gray-700"
+                        >
+                            <History className="w-3.5 h-3.5" />
+                            {intl.formatMessage({ id: 'reportHistory' })}
+                        </Link>
+                    </div>
                     <h1 className="mt-2 text-2xl sm:text-3xl font-bold">
                         {intl.formatMessage({ id: 'reportJournalTitle' })}
                     </h1>

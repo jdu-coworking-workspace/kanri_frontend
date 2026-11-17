@@ -1,8 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import { dateLocale, isCurrentPeriod, statusMessageId } from '@/utils/reports';
-
+import { dateLocale, isCurrentPeriod, monthName, statusMessageId } from '@/utils/reports';
 const STATUS_CLASS = {
     draft: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
     submitted: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-200',
@@ -50,6 +49,35 @@ export function MonthSwitcher({ year, month, onChange, canGoBack = true, canGoFo
             >
                 <ChevronRight className="w-4 h-4" />
             </button>
+        </div>
+    );
+}
+
+export function MonthTabs({ periods, activeKey, onChange }) {
+    const intl = useIntl();
+    return (
+        <div role="tablist" className="flex gap-2 overflow-x-auto pb-1">
+            {periods.map((period) => {
+                const key = `${period.year}-${period.month}`;
+                const active = key === activeKey;
+                return (
+                    <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => onChange(period)}
+                        className={`shrink-0 rounded-2xl px-4 py-2 text-left text-sm font-bold transition-colors ${
+                            active
+                                ? 'bg-[#122B31] text-white dark:bg-white dark:text-[#122B31]'
+                                : 'border border-[#E4E9EE] dark:border-gray-700 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                    >
+                        <span className="block text-[10px] font-semibold opacity-60">{period.year}</span>
+                        {monthName(period.year, period.month, intl.locale)}
+                    </button>
+                );
+            })}
         </div>
     );
 }

@@ -14,6 +14,7 @@ import {
     apiErrorMessage,
     conditionLabel,
     dateLocale,
+    downloadMyReport,
     durationMinutes,
     formatHours,
     hasAnyOutputEntry,
@@ -33,6 +34,7 @@ import {
     validateWeekNotes,
 } from '@/utils/reports';
 import TimeField from '@/components/custom/reports/time-field';
+import { Download, Loader2 } from 'lucide-react';
 
 const EMPTY_WEEKS = { week_1: '', week_2: '', week_3: '', week_4: '', week_5: '' };
 
@@ -53,7 +55,24 @@ export default function StudentReportEditorPage() {
     const [showMissing, setShowMissing] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
     const [savedSignature, setSavedSignature] = useState('');
-    const editable = Boolean(report?.editable);
+    const readOnly = router.query.readonly === '1';
+    const editable = Boolean(report?.editable) && !readOnly;
+    const [downloading, setDownloading] = useState(false);
+
+    const downloadExcel = async () => {
+        setDownloading(true);
+        try {
+            await downloadMyReport(
+                reportId,
+                `${report.title || 'report'}_${report.year}-${String(report.month).padStart(2, '0')}.xlsx`,
+            );
+            toast.success(intl.formatMessage({ id: 'reportDownloaded' }));
+        } catch (downloadError) {
+            toast.error(apiErrorMessage(downloadError, intl));
+        } finally {
+            setDownloading(false);
+        }
+    };
     const locale = dateLocale(intl.locale);
     const snapshot = report
         ? [
@@ -286,8 +305,15 @@ export default function StudentReportEditorPage() {
             <MenuTabs />
             <div className="container mx-auto px-4 py-6 max-w-6xl flex flex-col gap-5">
                 <div className="flex flex-col gap-3 p-5 sm:p-6 bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px]">
-                    <Link href="/dashboard/reports" className="w-fit text-xs font-semibold text-kanri-primary">
-                        {intl.formatMessage({ id: 'reportBack' })}
+                    <Link
+                        href={
+                            readOnly && report
+                                ? { pathname: '/dashboard/reports/history', query: { year: report.year, month: report.month } }
+                                : '/dashboard/reports'
+                        }
+                        className="w-fit text-xs font-semibold text-kanri-primary"
+                    >
+                        {intl.formatMessage({ id: readOnly ? 'reportBackToHistory' : 'reportBack' })}
                     </Link>
                     <h1 className="text-2xl font-bold text-[#122B31] dark:text-white">
                         {report?.title ? (
@@ -304,6 +330,17 @@ export default function StudentReportEditorPage() {
                             <span className="text-sm text-kanri-third dark:text-gray-400">
                                 {intl.formatMessage({ id: 'reportTotal' })} {formatHours(hydrated ? totalMinutes : report.total_minutes)}
                             </span>
+                                    {readOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={downloadExcel}
+                                            disabled={downloading}
+                                            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white text-xs font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                                        >
+                                            {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                            {intl.formatMessage({ id: 'reportDownloadShort' })}
+                                        </button>
+                                    )}
                         </div>
                     )}
                 </div>
