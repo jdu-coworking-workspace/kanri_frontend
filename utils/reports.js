@@ -381,10 +381,16 @@ export async function downloadMonthlyReport(reportId, fallbackName = 'report.xls
     );
 }
 
-export async function downloadPeriodReports(year, month) {
+// `filters`: filtersToApiParams(..., { paged: false }) natijasi. Berilsa faqat filtrga mos hisobotlar yuklanadi.
+export async function downloadPeriodReports(year, month, filters = {}) {
     const name = `reports_${year}-${String(month).padStart(2, '0')}.zip`;
     return saveBlobResponse(
-        () => authAxios.get('reports/export', { responseType: 'blob', params: { year, month } }),
+        () => authAxios.get('reports/export', {
+            responseType: 'blob',
+            params: { ...filters, year, month },
+            // status=a&status=b (axios standarti status[]=a bo'lardi, FastAPI uni o'qimaydi)
+            paramsSerializer: { indexes: null },
+        }),
         name,
     );
 }
