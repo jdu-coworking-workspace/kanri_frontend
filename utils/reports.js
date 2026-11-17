@@ -417,3 +417,29 @@ async function saveBlobResponse(request, fallbackName) {
     URL.revokeObjectURL(url);
     return filename;
 }
+
+export function monthName(year, month, locale, withYear = false) {
+    return new Intl.DateTimeFormat(
+        dateLocale(locale),
+        withYear ? { month: 'long', year: 'numeric' } : { month: 'long' },
+    ).format(new Date(year, month - 1, 1));
+}
+
+// Groups reports by month, newest first. Includes every month and every status.
+export function groupReportsByPeriod(items) {
+    const map = new Map();
+    (items || []).forEach((item) => {
+        const key = `${item.year}-${item.month}`;
+        if (!map.has(key)) map.set(key, { year: item.year, month: item.month, items: [] });
+        map.get(key).items.push(item);
+    });
+    return Array.from(map.values()).sort((a, b) => b.year - a.year || b.month - a.month);
+}
+
+// Student's own export. 
+export async function downloadMyReport(reportId, fallbackName = 'report.xlsx') {
+    return saveBlobResponse(
+        () => authAxios.get(`reports/me/${reportId}/export`, { responseType: 'blob' }),
+        fallbackName,
+    );
+}
