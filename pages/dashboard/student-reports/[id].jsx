@@ -10,7 +10,7 @@ import { StatusBadge } from '@/components/custom/reports/report-ui';
 import Seo from '@/components/Seo/Seo';
 import { authAxios } from '@/utils/axios';
 import fetcher from '@/utils/fetcher';
-import { apiErrorMessage, conditionLabel, dateLocale, downloadMonthlyReport, formatHours, hasOutputData, MAX_REVIEW_NOTE_LENGTH } from '@/utils/reports';
+import { apiErrorMessage, conditionLabel, dateLocale, downloadMonthlyReport, formatHours, hasOutputData, isOvernight, MAX_REVIEW_NOTE_LENGTH } from '@/utils/reports';
 import { isAdminRole } from '@/utils/roles';
 
 export default function StudentReportDetailPage() {
@@ -61,7 +61,7 @@ export default function StudentReportDetailPage() {
     const download = async () => {
         setPending('download');
         try {
-            await downloadMonthlyReport(reportId, `report-${report.year}-${report.month}.xlsx`);
+            await downloadMonthlyReport(reportId);
             toast.success(intl.formatMessage({ id: 'reportDownloaded' }));
         } catch (downloadError) {
             toast.error(apiErrorMessage(downloadError, intl));
@@ -192,7 +192,17 @@ export default function StudentReportDetailPage() {
                                                 ) : (
                                                     <>
                                                         <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>{day.start_time || '—'}</td>
-                                                        <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>{day.finish_time || '—'}</td>
+                                                        <td className={`px-4 py-3.5 align-top tabular-nums ${quiet}`}>
+                                                            {day.finish_time || '—'}
+                                                            {(day.overnight ?? isOvernight(day.start_time, day.finish_time)) && (
+                                                                <span
+                                                                    title={intl.formatMessage({ id: 'reportNextDayTitle' })}
+                                                                    className="ml-1.5 inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                                                                >
+                                                                    {intl.formatMessage({ id: 'reportNextDayShort' })}
+                                                                </span>
+                                                            )}
+                                                        </td>
                                                         <td className={`px-4 py-3.5 align-top font-medium tabular-nums ${quiet}`}>
                                                             {day.is_day_off ? '—' : formatHours(day.duration_minutes)}
                                                         </td>

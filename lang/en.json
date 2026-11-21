@@ -248,7 +248,7 @@
     "reportOpenTitle": "Open the report details",
     "reportNoReportYet": "This student has not created a report for this month yet",
     "reportNoReportYetShort": "Not created",
-    "reportNothingToDownload": "There are no reports to download for this month",
+    "reportNothingToDownload": "There are no reports to download",
     "reportEmpty": "No students found",
     "reportNoProfile": "No student profile is linked to this account",
     "reportRejectedBanner": "This month was rejected",
@@ -296,7 +296,7 @@
     "reportOutputEmpty": "Enter at least one day with work time before submitting",
     "reportMemoTooLong": "Memo must be 2000 characters or fewer",
     "reportWeekNoteTooLong": "A weekly note must be 4000 characters or fewer",
-    "reportWorkMinutesRange": "Work minutes must be a whole number between 0 and 1440",
+    "reportWorkMinutesRange": "Work minutes must be a whole number between 0 and 540",
     "reportCountRange": "Deliverable count must be a whole number between 0 and 100000",
     "reportHistory": "Report history",
     "reportHistoryTitle": "Report history",
@@ -371,5 +371,9 @@
     "filterClearFilters": "Clear filters",
     "filterNoMatch": "No student reports match the filters",
     "reportPaginationSummary": "{total} rows · {students} students · page {page}/{totalPages}",
-    "reportDownloadFilteredTitle": "Download the Excel reports that match the current filters as one ZIP"
+    "reportDownloadFilteredTitle": "Download the Excel reports that match the current filters as one ZIP",
+    "reportDayTooLong": "One day cannot exceed 9 hours (540 minutes)",
+    "reportStartMidnight": "Start time cannot be exactly 00:00",
+    "reportNextDayShort": "+1 day",
+    "reportNextDayTitle": "Finish time is on the next day (night shift)"
 }

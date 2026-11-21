@@ -2,7 +2,8 @@
 // Filter holati URL query'da saqlanadi: ?year=2026&month=11&status=submitted&q=ali&page=2
 
 export const REPORT_STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'not_created'];
-export const DOWNLOADABLE_STATUSES = ['draft', 'submitted', 'approved', 'rejected'];
+// Draft hisobotlar eksportga kirmaydi (ZIP ga ham, bitta fayl uchun ham: 403 REPORT_DRAFT_HIDDEN).
+export const DOWNLOADABLE_STATUSES = ['submitted', 'approved', 'rejected'];
 export const REPORT_TYPE_FILTERS = ['hourly', 'output'];
 // Backend qiymatlari: submitted_stale (3+ kundan beri ko'rilmagan), rejected (qayta yuborilmagan).
 export const ATTENTION_FILTERS = ['submitted_stale', 'rejected'];
@@ -22,10 +23,6 @@ const SORT_API = {
 export const SORT_OPTIONS = Object.keys(SORT_API);
 
 export const DEFAULT_SORT = 'name_asc';
-
-// Backend GET /reports/export hali filtr qabul qilmaydi (faqat year, month): butun oy yuklanadi.
-// Backend filtrni qo'llab-quvvatlay boshlaganda true qiling: tugma matni va soni filtrga o'tadi.
-export const EXPORT_USES_FILTERS = false;
 export const PAGE_SIZE = 20;
 export const MAX_SEARCH_LENGTH = 100;
 
@@ -101,19 +98,20 @@ export function filtersToQuery(filters, period) {
 }
 
 // API uchun. `status` va `report_type` massiv: fetcher/axios ularni takroriy parametr qilib yuboradi.
-// Eksport butun to'plamni yuklaydi, shuning uchun unda page/limit/sort yuborilmaydi.
+// GET /reports va GET /reports/export bir xil filtr parametrlarini qabul qiladi
+// (q, status, report_type, project_id, attention, sort, order, year, month).
+// Eksport butun to'plamni yuklaydi, shuning uchun unda page/limit yuborilmaydi (`paged: false`).
 export function filtersToApiParams(filters, period, { paged = true } = {}) {
     const params = { year: period.year, month: period.month };
-    if (!paged && !EXPORT_USES_FILTERS) return params;
     if (filters.q) params.q = filters.q;
     if (filters.status.length) params.status = [...filters.status];
     if (filters.reportType) params.report_type = [filters.reportType];
     if (filters.projectId) params.project_id = filters.projectId;
     if (filters.attention) params.attention = filters.attention;
+    const [sort, order] = SORT_API[filters.sort] || SORT_API[DEFAULT_SORT];
+    params.sort = sort;
+    params.order = order;
     if (paged) {
-        const [sort, order] = SORT_API[filters.sort] || SORT_API[DEFAULT_SORT];
-        params.sort = sort;
-        params.order = order;
         params.page = filters.page;
         params.limit = PAGE_SIZE;
     }
@@ -134,12 +132,12 @@ export function clearedFilters(filters) {
     return { ...filters, q: '', status: [], reportType: '', projectId: '', attention: '', page: 1 };
 }
 
-// Excel eksport tugmasi yonidagi son: faqat hisoboti bor qatorlar yuklanadi.
+// Excel eksport tugmasi yonidagi son. Draft va hisobotsiz (not_created) qatorlar yuklanmaydi.
 export function downloadableCount(filters, statusCounts) {
     if (!statusCounts) return 0;
     const selected = filters.status.length ? filters.status : DOWNLOADABLE_STATUSES;
     return selected
-        .filter((item) => item !== 'not_created')
+        .filter((item) => DOWNLOADABLE_STATUSES.includes(item))
         .reduce((sum, item) => sum + (Number(statusCounts[item]) || 0), 0);
 }
 

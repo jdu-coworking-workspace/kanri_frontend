@@ -19,7 +19,9 @@ import {
     formatHours,
     hasAnyOutputEntry,
     hasAnyReportData,
+    hourlyDayError,
     isDayMissing,
+    isOvernight,
     isReportComplete,
     MAX_MEMO_LENGTH,
     MAX_OUTPUT_COUNT,
@@ -29,7 +31,6 @@ import {
     parseClockInput,
     reportPayload,
     reportStateSignature,
-    timeOrderInvalid,
     validateReportDays,
     validateWeekNotes,
 } from '@/utils/reports';
@@ -214,12 +215,6 @@ export default function StudentReportEditorPage() {
         setDayOffDate(null);
     };
 
-    const rejectTimeOrder = (currentDays) => {
-        if (!currentDays.some((day) => !day.is_day_off && timeOrderInvalid(day.start_time, day.finish_time))) return false;
-        toast.error(intl.formatMessage({ id: 'reportTimeOrder' }));
-        return true;
-    };
-
     const save = async () => {
         const currentDays = daysForSave();
         if (!currentDays) {
@@ -227,7 +222,6 @@ export default function StudentReportEditorPage() {
             return;
         }
         setDays(currentDays);
-        if (rejectTimeOrder(currentDays)) return;
         const validationError = firstValidationError(currentDays);
         if (validationError) {
             toast.error(intl.formatMessage({ id: validationError }));
@@ -256,7 +250,6 @@ export default function StudentReportEditorPage() {
             return;
         }
         setDays(currentDays);
-        if (rejectTimeOrder(currentDays)) return;
         const validationError = firstValidationError(currentDays);
         if (validationError) {
             toast.error(intl.formatMessage({ id: validationError }));
@@ -408,7 +401,8 @@ export default function StudentReportEditorPage() {
                                         const minutes = isOutput
                                             ? (Number(day.work_minutes) || 0)
                                             : durationMinutes(day.start_time, day.finish_time);
-                                        const invalidOrder = !isOutput && !day.is_day_off && timeOrderInvalid(day.start_time, day.finish_time);
+                                        const hourlyError = isOutput ? null : hourlyDayError(day);
+                                        const overnight = !isOutput && !day.is_day_off && isOvernight(day.start_time, day.finish_time);
                                         // 成果制: bo'sh kunlar talab qilinmaydi, faqat kiritilgan kunlar tekshiriladi.
                                         const missing = showMissing && isDayMissing(day, report.report_type);
                                         const quiet = day.is_day_off ? 'text-kanri-third dark:text-gray-400' : 'text-[#122B31] dark:text-white';
@@ -494,6 +488,11 @@ export default function StudentReportEditorPage() {
                                                                 reportField="start_time"
                                                                 onChange={(next) => updateDay(day.work_date, { start_time: next })}
                                                             />
+                                                            {hourlyError === 'reportStartMidnight' && (
+                                                                <span className="mt-1.5 block text-[11px] leading-4 text-red-600">
+                                                                    {intl.formatMessage({ id: hourlyError })}
+                                                                </span>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 py-3.5 align-top">
                                                             <TimeField
@@ -503,9 +502,17 @@ export default function StudentReportEditorPage() {
                                                                 reportField="finish_time"
                                                                 onChange={(next) => updateDay(day.work_date, { finish_time: next })}
                                                             />
-                                                            {invalidOrder && (
+                                                            {overnight && (
+                                                                <span
+                                                                    title={intl.formatMessage({ id: 'reportNextDayTitle' })}
+                                                                    className="mt-1.5 inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                                                                >
+                                                                    {intl.formatMessage({ id: 'reportNextDayShort' })}
+                                                                </span>
+                                                            )}
+                                                            {hourlyError === 'reportDayTooLong' && (
                                                                 <span className="mt-1.5 block text-[11px] leading-4 text-red-600">
-                                                                    {intl.formatMessage({ id: 'reportTimeOrder' })}
+                                                                    {intl.formatMessage({ id: hourlyError })}
                                                                 </span>
                                                             )}
                                                         </td>

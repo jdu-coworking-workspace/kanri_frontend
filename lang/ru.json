@@ -248,7 +248,7 @@
     "reportOpenTitle": "Открыть подробности отчёта",
     "reportNoReportYet": "Этот студент ещё не создал отчёт за текущий месяц",
     "reportNoReportYetShort": "Не создан",
-    "reportNothingToDownload": "За этот месяц нет отчётов для скачивания",
+    "reportNothingToDownload": "Нет отчётов для скачивания",
     "reportEmpty": "Студенты не найдены",
     "reportNoProfile": "К этому аккаунту не привязан профиль студента",
     "reportRejectedBanner": "Этот месяц отклонён",
@@ -296,7 +296,7 @@
     "reportOutputEmpty": "Перед отправкой укажите рабочее время хотя бы за один день",
     "reportMemoTooLong": "Заметка должна быть не длиннее 2000 символов",
     "reportWeekNoteTooLong": "Недельная заметка должна быть не длиннее 4000 символов",
-    "reportWorkMinutesRange": "Рабочие минуты должны быть целым числом от 0 до 1440",
+    "reportWorkMinutesRange": "Рабочие минуты должны быть целым числом от 0 до 540",
     "reportCountRange": "Количество должно быть целым числом от 0 до 100000",
     "reportHistory": "История отчётов",
     "reportHistoryTitle": "История отчётов",
@@ -371,5 +371,9 @@
     "filterClearFilters": "Сбросить фильтры",
     "filterNoMatch": "Нет отчётов, подходящих под фильтры",
     "reportPaginationSummary": "Строк: {total} · студентов: {students} · стр. {page}/{totalPages}",
-    "reportDownloadFilteredTitle": "Скачать Excel-отчёты по текущим фильтрам одним ZIP"
+    "reportDownloadFilteredTitle": "Скачать Excel-отчёты по текущим фильтрам одним ZIP",
+    "reportDayTooLong": "Один день не может превышать 9 часов (540 минут)",
+    "reportStartMidnight": "Время начала не может быть ровно 00:00",
+    "reportNextDayShort": "+1 день",
+    "reportNextDayTitle": "Время окончания приходится на следующий день (ночная смена)"
 }

@@ -21,7 +21,6 @@ import {
     reportTypeLabel,
 } from '@/utils/reports';
 import {
-    EXPORT_USES_FILTERS,
     clearedFilters,
     completionDenominator,
     completionPercent,
@@ -83,15 +82,10 @@ export default function StudentReportListPage() {
 
     const [downloadingId, setDownloadingId] = useState('');
     const [downloadingAll, setDownloadingAll] = useState(false);
-    // Eksport filtrga bo'ysunmasa (EXPORT_USES_FILTERS=false), filtr paytida butun oy yuklanadi:
-    // soni noma'lum (null), matn esa "butun oy" deb qoladi.
-    const exportFollowsFilters = EXPORT_USES_FILTERS || !filtersActive;
-    let downloadableTotal = null;
-    if (exportFollowsFilters) {
-        downloadableTotal = statusCounts
-            ? downloadableCount(filters, statusCounts)
-            : items.filter((item) => item.report_id).length;
-    }
+    // ZIP joriy filtrga bo'ysunadi. Draft va hisobotsiz qatorlar kirmaydi, son status_counts dan olinadi.
+    const downloadableTotal = statusCounts
+        ? downloadableCount(filters, statusCounts)
+        : items.filter((item) => item.report_id && (item.can_open ?? item.status !== 'draft')).length;
 
     const applyFilters = useCallback(
         (next, { replace = false } = {}) => {
@@ -116,7 +110,8 @@ export default function StudentReportListPage() {
         if (!item.report_id) return;
         setDownloadingId(item.report_id);
         try {
-            await downloadMonthlyReport(item.report_id, `${item.student_code}_${year}-${String(month).padStart(2, '0')}.xlsx`);
+            // Fayl nomini backend beradi (Content-Disposition).
+            await downloadMonthlyReport(item.report_id);
             toast.success(intl.formatMessage({ id: 'reportDownloaded' }));
         } catch (downloadError) {
             toast.error(apiErrorMessage(downloadError, intl));
@@ -129,11 +124,7 @@ export default function StudentReportListPage() {
         setDownloadingAll(true);
         try {
             await downloadPeriodReports(year, month, filtersToApiParams(filters, period, { paged: false }));
-            toast.success(
-                downloadableTotal == null
-                    ? intl.formatMessage({ id: 'reportDownloaded' })
-                    : intl.formatMessage({ id: 'reportDownloadedAll' }, { count: downloadableTotal }),
-            );
+            toast.success(intl.formatMessage({ id: 'reportDownloadedAll' }, { count: downloadableTotal }));
         } catch (downloadError) {
             toast.error(apiErrorMessage(downloadError, intl));
         } finally {
@@ -187,9 +178,7 @@ export default function StudentReportListPage() {
                                     downloadableTotal === 0
                                         ? intl.formatMessage({ id: 'reportNothingToDownload' })
                                         : intl.formatMessage({
-                                            id: filtersActive && exportFollowsFilters
-                                                ? 'reportDownloadFilteredTitle'
-                                                : 'reportDownloadAllTitle',
+                                            id: filtersActive ? 'reportDownloadFilteredTitle' : 'reportDownloadAllTitle',
                                         })
                                 }
                                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#122B31] hover:bg-[#1B2A32] disabled:opacity-40 text-white font-bold text-xs sm:text-sm"
@@ -200,7 +189,7 @@ export default function StudentReportListPage() {
                                     <Download className="w-4 h-4" />
                                 )}
                                 {intl.formatMessage({ id: 'reportDownloadAll' })}
-                                {downloadableTotal != null && downloadableTotal > 0 && (
+                                {downloadableTotal > 0 && (
                                     <span className="opacity-70">({downloadableTotal})</span>
                                 )}
                             </button>
@@ -275,6 +264,7 @@ export default function StudentReportListPage() {
                                     )}
                                     {items.map((item) => {
                                         const percent = completionPercent(item);
+                                        const canOpen = item.can_open ?? item.status !== 'draft';
                                         return (
                                             <tr key={item.report_id || item.student_id} className="border-t border-[#E4E9EE] dark:border-gray-700/60">
                                                 <td className="px-4 py-3 font-medium text-[#122B31] dark:text-white">{item.student_name}</td>
@@ -304,8 +294,16 @@ export default function StudentReportListPage() {
                                                 <td className="px-4 py-3 text-right">
                                                     {item.report_id ? (
                                                         <div className="inline-flex items-center gap-3">
-                                                            {/* can_open=false (draft): detail 403 REPORT_DRAFT_HIDDEN qaytaradi, "Ochish" chiqmaydi. */}
-                                                            {(item.can_open ?? item.status !== 'draft') && (
+                                                            {/* can_open=false (draft): detail va Excel 403 REPORT_DRAFT_HIDDEN qaytaradi, ikkala tugma yashirin. */}
+                                                            {!canOpen && (
+                                                                <span
+                                                                    title={intl.formatMessage({ id: 'reportDraftHidden' })}
+                                                                    className="text-kanri-third dark:text-gray-500"
+                                                                >
+                                                                    —
+                                                                </span>
+                                                            )}
+                                                            {canOpen && (
                                                                 <Link
                                                                     href={{
                                                                         pathname: '/dashboard/student-reports/[id]',
@@ -317,7 +315,7 @@ export default function StudentReportListPage() {
                                                                     {intl.formatMessage({ id: 'reportOpen' })}
                                                                 </Link>
                                                             )}
-                                                            {isAdmin && (
+                                                            {isAdmin && canOpen && (
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => download(item)}

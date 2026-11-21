@@ -250,7 +250,7 @@
     "reportOpenTitle": "報告の詳細を開きます",
     "reportNoReportYet": "この学生はまだ今月の報告を作成していません",
     "reportNoReportYetShort": "未作成",
-    "reportNothingToDownload": "この月にはダウンロードできる報告がありません",
+    "reportNothingToDownload": "ダウンロードできる報告がありません",
     "reportEmpty": "学生がいません",
     "reportNoProfile": "このアカウントに学生プロフィールが紐づいていません",
     "reportRejectedBanner": "この月は差し戻されました",
@@ -298,7 +298,7 @@
     "reportOutputEmpty": "提出する前に、少なくとも1日分の作業時間を入力してください",
     "reportMemoTooLong": "メモは2000文字以内で入力してください",
     "reportWeekNoteTooLong": "週次メモは4000文字以内で入力してください",
-    "reportWorkMinutesRange": "作業時間（分）は0〜1440の整数で入力してください",
+    "reportWorkMinutesRange": "作業時間（分）は0〜540の整数で入力してください",
     "reportCountRange": "納品数は0〜100000の整数で入力してください",
     "reportHistory": "レポート履歴",
     "reportHistoryTitle": "レポート履歴",
@@ -373,5 +373,9 @@
     "filterClearFilters": "フィルターをクリア",
     "filterNoMatch": "条件に一致する報告が見つかりません",
     "reportPaginationSummary": "{total}件 · {students}名 · {page}/{totalPages}ページ",
-    "reportDownloadFilteredTitle": "現在のフィルターに一致する Excel を ZIP でダウンロードします"
+    "reportDownloadFilteredTitle": "現在のフィルターに一致する Excel を ZIP でダウンロードします",
+    "reportDayTooLong": "1日の勤務は9時間（540分）を超えられません",
+    "reportStartMidnight": "開始時刻をちょうど00:00にはできません",
+    "reportNextDayShort": "+1日",
+    "reportNextDayTitle": "終了時刻は翌日です（夜勤）"
 }
