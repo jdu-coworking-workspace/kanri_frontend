@@ -4,7 +4,10 @@ import { authAxios } from '@/utils/axios';
 export const MAX_MEMO_LENGTH = 2000;
 export const MAX_WEEK_NOTE_LENGTH = 4000;
 export const MAX_REVIEW_NOTE_LENGTH = 4000;
-export const MAX_WORK_MINUTES = 1440;
+// Bir kunlik maksimum ish vaqti: hourly (tungi smena bilan) va output work_minutes uchun
+// backend WorkReportService.MAX_DAY_MINUTES (REPORT_DAY_TOO_LONG).
+export const MAX_DAY_MINUTES = 9 * 60;
+export const MAX_WORK_MINUTES = MAX_DAY_MINUTES;
 export const MAX_OUTPUT_COUNT = 100000;
 
 // Eski hisobotlarda saqlanib qolgan yaponcha default label'lar.
@@ -37,6 +40,8 @@ export function formatHours(minutes) {
     return `${hours}:${String(mins).padStart(2, '0')}`;
 }
 
+// Tungi smena: tugash vaqti boshlanishdan oldin bo'lsa smena yarim tundan o'tadi
+// (22:00 -> 01:00 = 180 daqiqa). Boshlanish = tugash bo'lsa 0 daqiqa (hali to'liq emas).
 export function durationMinutes(start, finish) {
     if (!start || !finish) return 0;
     const [startHour, startMinute] = start.split(':').map(Number);
@@ -210,9 +215,23 @@ export function reportPayload(year, month, weeks, days) {
     };
 }
 
-export function timeOrderInvalid(start, finish) {
+// Smena keyingi kunda tugaydi ("+1 kun" belgisi). Smena boshlangan sanaga yoziladi.
+export function isOvernight(start, finish) {
     if (!start || !finish) return false;
-    return start > finish;
+    return finish < start;
+}
+
+// 00:00 da boshlangan smena qabul qilinmaydi (REPORT_START_MIDNIGHT).
+export function startsAtMidnight(start) {
+    return start === '00:00';
+}
+
+// hourly kun uchun backend qoidalari: i18n kaliti yoki null.
+export function hourlyDayError(day) {
+    if (!day || day.is_day_off) return null;
+    if (startsAtMidnight(day.start_time)) return 'reportStartMidnight';
+    if (durationMinutes(day.start_time, day.finish_time) > MAX_DAY_MINUTES) return 'reportDayTooLong';
+    return null;
 }
 
 export function parseNumericInput(raw) {
@@ -317,11 +336,23 @@ export function validateReportDays(days, reportType = 'hourly') {
         if (String(day.description ?? '').length > MAX_MEMO_LENGTH) {
             errors.push({ work_date: day.work_date, field: 'description', code: 'reportMemoTooLong' });
         }
-        if (reportType !== 'output') return;
+        if (reportType !== 'output') {
+            const hourlyError = hourlyDayError(day);
+            if (hourlyError) {
+                errors.push({
+                    work_date: day.work_date,
+                    field: hourlyError === 'reportStartMidnight' ? 'start_time' : 'finish_time',
+                    code: hourlyError,
+                });
+            }
+            return;
+        }
 
         const minutes = parseNumericInput(day.work_minutes);
-        if (!minutes.ok || (minutes.value != null && minutes.value > MAX_WORK_MINUTES)) {
+        if (!minutes.ok) {
             errors.push({ work_date: day.work_date, field: 'work_minutes', code: 'reportWorkMinutesRange' });
+        } else if (minutes.value != null && minutes.value > MAX_DAY_MINUTES) {
+            errors.push({ work_date: day.work_date, field: 'work_minutes', code: 'reportDayTooLong' });
         }
         [['count_1', 'reportCountRange'], ['count_2', 'reportCountRange']].forEach(([field, code]) => {
             const parsed = parseNumericInput(day[field]);
@@ -346,7 +377,8 @@ const CODE_MESSAGE = {
     REPORT_LIMIT_REACHED: 'reportLimitReached',
     REPORT_TITLE_EXISTS: 'reportTitleExists',
     REPORT_TYPE_EXISTS: 'reportTypeExists',
-    REPORT_TIME_ORDER: 'reportTimeOrder',
+    REPORT_DAY_TOO_LONG: 'reportDayTooLong',
+    REPORT_START_MIDNIGHT: 'reportStartMidnight',
     REPORT_DRAFT_HIDDEN: 'reportDraftHidden',
     REPORT_EXPORT_EMPTY: 'reportNothingToDownload',
     STUDENT_PROFILE_NOT_FOUND: 'reportNoProfile',
@@ -381,32 +413,65 @@ export async function downloadMonthlyReport(reportId, fallbackName = 'report.xls
     );
 }
 
-export async function downloadPeriodReports(year, month) {
-    const name = `reports_${year}-${String(month).padStart(2, '0')}.zip`;
+// `filters`: filtersToApiParams(..., { paged: false }) natijasi: ro'yxat bilan bir xil filtrlar.
+// Fayl nomini backend beradi (Content-Disposition); `reports.zip` faqat sarlavha kelmasa ishlatiladi.
+export async function downloadPeriodReports(year, month, filters = {}) {
+    const name = 'reports.zip';
     return saveBlobResponse(
-        () => authAxios.get('reports/export', { responseType: 'blob', params: { year, month } }),
+        () => authAxios.get('reports/export', {
+            responseType: 'blob',
+            params: { ...filters, year, month },
+            // status=a&status=b (axios standarti status[]=a bo'lardi, FastAPI uni o'qimaydi)
+            paramsSerializer: { indexes: null },
+        }),
         name,
     );
 }
 
+async function parseBlobJson(blob) {
+    try {
+        return JSON.parse(await blob.text());
+    } catch {
+        return {};
+    }
+}
+
+// Content-Disposition: attachment; filename="ASCII"; filename*=UTF-8''...
+// Yapon harfli ismlar faqat filename* da to'g'ri keladi, shuning uchun u birinchi o'qiladi.
+export function filenameFromDisposition(disposition) {
+    if (!disposition) return '';
+    const encoded = disposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+    if (encoded) {
+        try {
+            return decodeURIComponent(encoded[1].trim());
+        } catch {
+            // buzilgan kodlash: oddiy filename ga o'tamiz
+        }
+    }
+    const plain = disposition.match(/filename\s*=\s*"([^"]+)"/i);
+    return plain ? plain[1] : '';
+}
+
 async function saveBlobResponse(request, fallbackName) {
-    const response = await request();
+    let response;
+    try {
+        response = await request();
+    } catch (requestError) {
+        // responseType 'blob' bo'lsa 403/404 javob tanasi ham Blob bo'ladi: xato kodini o'qish uchun ochamiz
+        // (REPORT_DRAFT_HIDDEN, REPORT_EXPORT_EMPTY).
+        const body = requestError?.response?.data;
+        if (typeof Blob !== 'undefined' && body instanceof Blob) {
+            requestError.data = await parseBlobJson(body);
+        }
+        throw requestError;
+    }
     const blob = response.data;
     if (blob?.type?.includes('application/json')) {
-        const text = await blob.text();
-        let data = {};
-        try {
-            data = JSON.parse(text);
-        } catch {
-            data = {};
-        }
         const error = new Error('API request failed');
-        error.data = data;
+        error.data = await parseBlobJson(blob);
         throw error;
     }
-    const disposition = response.headers['content-disposition'] || '';
-    const matched = disposition.match(/filename="([^"]+)"/);
-    const filename = matched?.[1] || fallbackName;
+    const filename = filenameFromDisposition(response.headers['content-disposition']) || fallbackName;
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -416,4 +481,30 @@ async function saveBlobResponse(request, fallbackName) {
     link.remove();
     URL.revokeObjectURL(url);
     return filename;
+}
+
+export function monthName(year, month, locale, withYear = false) {
+    return new Intl.DateTimeFormat(
+        dateLocale(locale),
+        withYear ? { month: 'long', year: 'numeric' } : { month: 'long' },
+    ).format(new Date(year, month - 1, 1));
+}
+
+// Groups reports by month, newest first. Includes every month and every status.
+export function groupReportsByPeriod(items) {
+    const map = new Map();
+    (items || []).forEach((item) => {
+        const key = `${item.year}-${item.month}`;
+        if (!map.has(key)) map.set(key, { year: item.year, month: item.month, items: [] });
+        map.get(key).items.push(item);
+    });
+    return Array.from(map.values()).sort((a, b) => b.year - a.year || b.month - a.month);
+}
+
+// Student's own export. 
+export async function downloadMyReport(reportId, fallbackName = 'report.xlsx') {
+    return saveBlobResponse(
+        () => authAxios.get(`reports/me/${reportId}/export`, { responseType: 'blob' }),
+        fallbackName,
+    );
 }

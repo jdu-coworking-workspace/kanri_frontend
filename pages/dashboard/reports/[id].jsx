@@ -14,11 +14,14 @@ import {
     apiErrorMessage,
     conditionLabel,
     dateLocale,
+    downloadMyReport,
     durationMinutes,
     formatHours,
     hasAnyOutputEntry,
     hasAnyReportData,
+    hourlyDayError,
     isDayMissing,
+    isOvernight,
     isReportComplete,
     MAX_MEMO_LENGTH,
     MAX_OUTPUT_COUNT,
@@ -28,11 +31,11 @@ import {
     parseClockInput,
     reportPayload,
     reportStateSignature,
-    timeOrderInvalid,
     validateReportDays,
     validateWeekNotes,
 } from '@/utils/reports';
 import TimeField from '@/components/custom/reports/time-field';
+import { Download, Loader2 } from 'lucide-react';
 
 const EMPTY_WEEKS = { week_1: '', week_2: '', week_3: '', week_4: '', week_5: '' };
 
@@ -53,7 +56,24 @@ export default function StudentReportEditorPage() {
     const [showMissing, setShowMissing] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
     const [savedSignature, setSavedSignature] = useState('');
-    const editable = Boolean(report?.editable);
+    const readOnly = router.query.readonly === '1';
+    const editable = Boolean(report?.editable) && !readOnly;
+    const [downloading, setDownloading] = useState(false);
+
+    const downloadExcel = async () => {
+        setDownloading(true);
+        try {
+            await downloadMyReport(
+                reportId,
+                `${report.title || 'report'}_${report.year}-${String(report.month).padStart(2, '0')}.xlsx`,
+            );
+            toast.success(intl.formatMessage({ id: 'reportDownloaded' }));
+        } catch (downloadError) {
+            toast.error(apiErrorMessage(downloadError, intl));
+        } finally {
+            setDownloading(false);
+        }
+    };
     const locale = dateLocale(intl.locale);
     const snapshot = report
         ? [
@@ -195,12 +215,6 @@ export default function StudentReportEditorPage() {
         setDayOffDate(null);
     };
 
-    const rejectTimeOrder = (currentDays) => {
-        if (!currentDays.some((day) => !day.is_day_off && timeOrderInvalid(day.start_time, day.finish_time))) return false;
-        toast.error(intl.formatMessage({ id: 'reportTimeOrder' }));
-        return true;
-    };
-
     const save = async () => {
         const currentDays = daysForSave();
         if (!currentDays) {
@@ -208,7 +222,6 @@ export default function StudentReportEditorPage() {
             return;
         }
         setDays(currentDays);
-        if (rejectTimeOrder(currentDays)) return;
         const validationError = firstValidationError(currentDays);
         if (validationError) {
             toast.error(intl.formatMessage({ id: validationError }));
@@ -237,7 +250,6 @@ export default function StudentReportEditorPage() {
             return;
         }
         setDays(currentDays);
-        if (rejectTimeOrder(currentDays)) return;
         const validationError = firstValidationError(currentDays);
         if (validationError) {
             toast.error(intl.formatMessage({ id: validationError }));
@@ -286,8 +298,15 @@ export default function StudentReportEditorPage() {
             <MenuTabs />
             <div className="container mx-auto px-4 py-6 max-w-6xl flex flex-col gap-5">
                 <div className="flex flex-col gap-3 p-5 sm:p-6 bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px]">
-                    <Link href="/dashboard/reports" className="w-fit text-xs font-semibold text-kanri-primary">
-                        {intl.formatMessage({ id: 'reportBack' })}
+                    <Link
+                        href={
+                            readOnly && report
+                                ? { pathname: '/dashboard/reports/history', query: { year: report.year, month: report.month } }
+                                : '/dashboard/reports'
+                        }
+                        className="w-fit text-xs font-semibold text-kanri-primary"
+                    >
+                        {intl.formatMessage({ id: readOnly ? 'reportBackToHistory' : 'reportBack' })}
                     </Link>
                     <h1 className="text-2xl font-bold text-[#122B31] dark:text-white">
                         {report?.title ? (
@@ -304,6 +323,17 @@ export default function StudentReportEditorPage() {
                             <span className="text-sm text-kanri-third dark:text-gray-400">
                                 {intl.formatMessage({ id: 'reportTotal' })} {formatHours(hydrated ? totalMinutes : report.total_minutes)}
                             </span>
+                                    {readOnly && (
+                                        <button
+                                            type="button"
+                                            onClick={downloadExcel}
+                                            disabled={downloading}
+                                            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white text-xs font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                                        >
+                                            {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                            {intl.formatMessage({ id: 'reportDownloadShort' })}
+                                        </button>
+                                    )}
                         </div>
                     )}
                 </div>
@@ -371,7 +401,8 @@ export default function StudentReportEditorPage() {
                                         const minutes = isOutput
                                             ? (Number(day.work_minutes) || 0)
                                             : durationMinutes(day.start_time, day.finish_time);
-                                        const invalidOrder = !isOutput && !day.is_day_off && timeOrderInvalid(day.start_time, day.finish_time);
+                                        const hourlyError = isOutput ? null : hourlyDayError(day);
+                                        const overnight = !isOutput && !day.is_day_off && isOvernight(day.start_time, day.finish_time);
                                         // 成果制: bo'sh kunlar talab qilinmaydi, faqat kiritilgan kunlar tekshiriladi.
                                         const missing = showMissing && isDayMissing(day, report.report_type);
                                         const quiet = day.is_day_off ? 'text-kanri-third dark:text-gray-400' : 'text-[#122B31] dark:text-white';
@@ -457,6 +488,11 @@ export default function StudentReportEditorPage() {
                                                                 reportField="start_time"
                                                                 onChange={(next) => updateDay(day.work_date, { start_time: next })}
                                                             />
+                                                            {hourlyError === 'reportStartMidnight' && (
+                                                                <span className="mt-1.5 block text-[11px] leading-4 text-red-600">
+                                                                    {intl.formatMessage({ id: hourlyError })}
+                                                                </span>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 py-3.5 align-top">
                                                             <TimeField
@@ -466,9 +502,17 @@ export default function StudentReportEditorPage() {
                                                                 reportField="finish_time"
                                                                 onChange={(next) => updateDay(day.work_date, { finish_time: next })}
                                                             />
-                                                            {invalidOrder && (
+                                                            {overnight && (
+                                                                <span
+                                                                    title={intl.formatMessage({ id: 'reportNextDayTitle' })}
+                                                                    className="mt-1.5 inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold leading-4 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                                                                >
+                                                                    {intl.formatMessage({ id: 'reportNextDayShort' })}
+                                                                </span>
+                                                            )}
+                                                            {hourlyError === 'reportDayTooLong' && (
                                                                 <span className="mt-1.5 block text-[11px] leading-4 text-red-600">
-                                                                    {intl.formatMessage({ id: 'reportTimeOrder' })}
+                                                                    {intl.formatMessage({ id: hourlyError })}
                                                                 </span>
                                                             )}
                                                         </td>

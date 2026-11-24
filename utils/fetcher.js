@@ -60,9 +60,15 @@ export default async function fetcher(
 		const cleanUrl = url.replace(/^\/+/, "");
 		const __url = resolveApiUrl(cleanUrl);
 
-		Object.keys(params).forEach((key) =>
-			__url.searchParams.append(key, params[key]),
-		);
+		// Massiv qiymat takroriy parametr bo'lib ketadi: status=a&status=b
+		Object.keys(params).forEach((key) => {
+			const value = params[key];
+			if (Array.isArray(value)) {
+				value.forEach((item) => __url.searchParams.append(key, item));
+			} else {
+				__url.searchParams.append(key, value);
+			}
+		});
 
 		const response = await fetch(__url, updateOptions(options, auth));
 

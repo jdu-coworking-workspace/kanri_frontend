@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useIntl } from 'react-intl';
@@ -8,7 +8,9 @@ import { toast } from 'react-toastify';
 import { ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { MenuTabs } from '@/components/custom';
 import { MonthSwitcher, StatusBadge } from '@/components/custom/reports/report-ui';
+import ReportFilters from '@/components/custom/reports/report-filters';
 import Seo from '@/components/Seo/Seo';
+import { usePagination } from '@/hooks/usePagination';
 import fetcher from '@/utils/fetcher';
 import {
     apiErrorMessage,
@@ -18,10 +20,24 @@ import {
     readPeriod,
     reportTypeLabel,
 } from '@/utils/reports';
+import {
+    clearedFilters,
+    completionDenominator,
+    completionPercent,
+    downloadableCount,
+    filtersToApiParams,
+    filtersToQuery,
+    hasActiveFilters,
+    readFilters,
+    sanitizeFilters,
+} from '@/utils/reportFilters';
 import { isAdminRole } from '@/utils/roles';
 
-const PAGE_SIZE = 10;
+const LIST_PATH = '/dashboard/student-reports';
 const EMPTY_PERIODS = [];
+const EMPTY_ITEMS = [];
+const EMPTY_PROJECTS = [];
+const TABLE_COLUMNS = 8;
 
 export default function StudentReportListPage() {
     const intl = useIntl();
@@ -33,26 +49,69 @@ export default function StudentReportListPage() {
         [router.isReady, router.query.year, router.query.month],
     );
     const { year, month } = period;
-    const { data, error, isLoading } = useSWR(
-        ['reports', year, month],
-        ([, reportYear, reportMonth]) => fetcher('reports', {}, { year: reportYear, month: reportMonth }),
+
+    // Filter holati URL query'da: yangilash, havolani ulashish va back/forward ishlaydi.
+    const filters = useMemo(
+        () => readFilters(router.isReady ? router.query : {}),
+        [router.isReady, router.query],
     );
-    const items = data?.data?.items || [];
-    const periods = data?.data?.periods ?? EMPTY_PERIODS;
+    const apiParams = useMemo(() => filtersToApiParams(filters, period), [filters, period]);
+
+    const { data, error, isLoading, isValidating } = useSWR(
+        router.isReady ? ['reports', JSON.stringify(apiParams)] : null,
+        () => fetcher('reports', {}, apiParams),
+        { keepPreviousData: true },
+    );
+    const { data: projectsData } = useSWR('projects?limit=100', (url) => fetcher(url, {}, {}, true));
+    const projects = projectsData?.data ?? EMPTY_PROJECTS;
+
+    const payload = data?.data;
+    const items = payload?.items ?? EMPTY_ITEMS;
+    const periods = payload?.periods ?? EMPTY_PERIODS;
+    const hasPagination = payload?.total_pages != null;
+    const statusCounts = payload?.status_counts;
+    // Backend hozircha attention_counts qaytarmaydi: chip'larda son ko'rsatilmaydi.
+    const attentionCounts = payload?.attention_counts;
+    const totalRows = payload?.total ?? items.length;
+    const totalStudents = payload?.total_students ?? totalRows;
+    const totalPages = Math.max(1, payload?.total_pages ?? 1);
+    const page = Math.min(filters.page, totalPages);
+    const filtersActive = hasActiveFilters(filters);
     const periodIndex = periods.findIndex((item) => item.year === year && item.month === month);
-    const page = Math.max(1, parseInt(String(router.query.page || '1'), 10) || 1);
-    const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
-    const safePage = Math.min(page, totalPages);
-    const visibleItems = items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+    const pageRange = usePagination({ totalPageCount: totalPages, siblingCount: 1, currentPage: page }) || [];
+
     const [downloadingId, setDownloadingId] = useState('');
     const [downloadingAll, setDownloadingAll] = useState(false);
-    const downloadableCount = items.filter((item) => item.report_id).length;
+    // ZIP joriy filtrga bo'ysunadi. Draft va hisobotsiz qatorlar kirmaydi, son status_counts dan olinadi.
+    const downloadableTotal = statusCounts
+        ? downloadableCount(filters, statusCounts)
+        : items.filter((item) => item.report_id && (item.can_open ?? item.status !== 'draft')).length;
+
+    const applyFilters = useCallback(
+        (next, { replace = false } = {}) => {
+            router[replace ? 'replace' : 'push'](
+                { pathname: LIST_PATH, query: filtersToQuery(sanitizeFilters(next), period) },
+                undefined,
+                { shallow: true },
+            );
+        },
+        [router, period],
+    );
+
+    const goToPeriod = (next) => {
+        router.replace(
+            { pathname: LIST_PATH, query: filtersToQuery({ ...filters, page: 1 }, next) },
+            undefined,
+            { shallow: true },
+        );
+    };
 
     const download = async (item) => {
         if (!item.report_id) return;
         setDownloadingId(item.report_id);
         try {
-            await downloadMonthlyReport(item.report_id, `${item.student_code}_${year}-${String(month).padStart(2, '0')}.xlsx`);
+            // Fayl nomini backend beradi (Content-Disposition).
+            await downloadMonthlyReport(item.report_id);
             toast.success(intl.formatMessage({ id: 'reportDownloaded' }));
         } catch (downloadError) {
             toast.error(apiErrorMessage(downloadError, intl));
@@ -64,8 +123,8 @@ export default function StudentReportListPage() {
     const downloadAll = async () => {
         setDownloadingAll(true);
         try {
-            await downloadPeriodReports(year, month);
-            toast.success(intl.formatMessage({ id: 'reportDownloadedAll' }, { count: downloadableCount }));
+            await downloadPeriodReports(year, month, filtersToApiParams(filters, period, { paged: false }));
+            toast.success(intl.formatMessage({ id: 'reportDownloadedAll' }, { count: downloadableTotal }));
         } catch (downloadError) {
             toast.error(apiErrorMessage(downloadError, intl));
         } finally {
@@ -75,34 +134,25 @@ export default function StudentReportListPage() {
 
     useEffect(() => {
         if (!router.isReady || periods.length === 0 || periodIndex >= 0) return;
-        const next = periods[0];
-        router.replace(
-            { pathname: '/dashboard/student-reports', query: { year: next.year, month: next.month } },
-            undefined,
-            { shallow: true },
-        );
+        goToPeriod(periods[0]);
     }, [router.isReady, periods, periodIndex, year, month]);
+
+    // Filtr kuchaygach sahifa soni kamaysa (yoki ulashilgan havola eskirsa) oxirgi sahifaga o'tamiz.
+    // Faqat yangi javob kelgandan keyin: keepPreviousData paytida eski pagination aldamasligi uchun.
+    useEffect(() => {
+        if (!hasPagination || isValidating) return;
+        if (filters.page > totalPages) applyFilters({ ...filters, page: totalPages }, { replace: true });
+    }, [hasPagination, isValidating, totalPages, filters.page]);
 
     const changeMonth = (delta) => {
         const next = periods[periodIndex - delta];
         if (!next) return;
-        router.replace(
-            { pathname: '/dashboard/student-reports', query: { year: next.year, month: next.month } },
-            undefined,
-            { shallow: true },
-        );
+        goToPeriod(next);
     };
 
     const goToPage = (nextPage) => {
         if (nextPage < 1 || nextPage > totalPages) return;
-        router.replace(
-            {
-                pathname: '/dashboard/student-reports',
-                query: { year, month, page: String(nextPage) },
-            },
-            undefined,
-            { shallow: true },
-        );
+        applyFilters({ ...filters, page: nextPage });
     };
 
     return (
@@ -123,11 +173,13 @@ export default function StudentReportListPage() {
                             <button
                                 type="button"
                                 onClick={downloadAll}
-                                disabled={downloadingAll || downloadableCount === 0}
+                                disabled={downloadingAll || downloadableTotal === 0}
                                 title={
-                                    downloadableCount === 0
+                                    downloadableTotal === 0
                                         ? intl.formatMessage({ id: 'reportNothingToDownload' })
-                                        : intl.formatMessage({ id: 'reportDownloadAllTitle' })
+                                        : intl.formatMessage({
+                                            id: filtersActive ? 'reportDownloadFilteredTitle' : 'reportDownloadAllTitle',
+                                        })
                                 }
                                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#122B31] hover:bg-[#1B2A32] disabled:opacity-40 text-white font-bold text-xs sm:text-sm"
                             >
@@ -137,8 +189,8 @@ export default function StudentReportListPage() {
                                     <Download className="w-4 h-4" />
                                 )}
                                 {intl.formatMessage({ id: 'reportDownloadAll' })}
-                                {downloadableCount > 0 && (
-                                    <span className="opacity-70">({downloadableCount})</span>
+                                {downloadableTotal > 0 && (
+                                    <span className="opacity-70">({downloadableTotal})</span>
                                 )}
                             </button>
                         )}
@@ -152,6 +204,14 @@ export default function StudentReportListPage() {
                     </div>
                 </div>
 
+                <ReportFilters
+                    filters={filters}
+                    onApply={applyFilters}
+                    statusCounts={statusCounts}
+                    attentionCounts={attentionCounts}
+                    projects={projects}
+                />
+
                 {isLoading && (
                     <p className="text-sm text-kanri-third dark:text-gray-400">
                         {intl.formatMessage({ id: '読み込み中...' })}
@@ -162,9 +222,13 @@ export default function StudentReportListPage() {
                 )}
 
                 {!isLoading && !error && (
-                    <div className="bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px] overflow-hidden">
+                    <div
+                        className={`bg-white dark:bg-gray-800 border border-[#E4E9EE] dark:border-gray-700/60 shadow-soft-sm dark:shadow-none rounded-[24px] overflow-hidden transition-opacity ${
+                            isValidating ? 'opacity-60' : ''
+                        }`}
+                    >
                         <div className="overflow-x-auto">
-                            <table className="min-w-[720px] w-full text-sm">
+                            <table className="min-w-[820px] w-full text-sm">
                                 <thead className="bg-gray-50 dark:bg-gray-900/40 text-left text-kanri-third dark:text-gray-400">
                                     <tr>
                                         <th className="px-4 py-3 font-medium">{intl.formatMessage({ id: 'reportStudent' })}</th>
@@ -173,111 +237,160 @@ export default function StudentReportListPage() {
                                         <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: 'reportType' })}</th>
                                         <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: '状態' })}</th>
                                         <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: 'reportHours' })}</th>
+                                        <th className="px-3 py-3 font-medium">{intl.formatMessage({ id: 'filterCompletion' })}</th>
                                         <th className="px-4 py-3 font-medium" />
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {items.length === 0 && (
                                         <tr>
-                                            <td colSpan={7} className="px-4 py-8 text-center text-kanri-third dark:text-gray-400">
-                                                {intl.formatMessage({ id: 'reportEmpty' })}
-                                            </td>
-                                        </tr>
-                                    )}
-                                    {visibleItems.map((item) => (
-                                        <tr key={item.report_id || item.student_id} className="border-t border-[#E4E9EE] dark:border-gray-700/60">
-                                            <td className="px-4 py-3 font-medium text-[#122B31] dark:text-white">{item.student_name}</td>
-                                            <td className="px-3 py-3 text-kanri-third dark:text-gray-300">{item.student_code}</td>
-                                            <td className="px-3 py-3 text-[#122B31] dark:text-white">{item.title || '—'}</td>
-                                            <td className="px-3 py-3 text-xs text-kanri-third dark:text-gray-300">{reportTypeLabel(item.report_type, intl)}</td>
-                                            <td className="px-3 py-3"><StatusBadge status={item.status} /></td>
-                                            <td className="px-3 py-3 text-[#122B31] dark:text-white">{formatHours(item.total_minutes)}</td>
-                                            <td className="px-4 py-3 text-right">
-                                                {item.report_id ? (
-                                                    <div className="inline-flex items-center gap-3">
-                                                        {item.status !== 'draft' && (
-                                                            <Link
-                                                                href={{
-                                                                    pathname: '/dashboard/student-reports/[id]',
-                                                                    query: { id: item.report_id, year, month },
-                                                                }}
-                                                                title={intl.formatMessage({ id: 'reportOpenTitle' })}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700"
-                                                            >
-                                                                {intl.formatMessage({ id: 'reportOpen' })}
-                                                            </Link>
-                                                        )}
-                                                        {isAdmin && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => download(item)}
-                                                                disabled={downloadingId === item.report_id}
-                                                                title={intl.formatMessage({ id: 'reportDownloadTitle' })}
-                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700 disabled:opacity-50"
-                                                            >
-                                                                {downloadingId === item.report_id ? (
-                                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                                ) : (
-                                                                    <Download className="w-3.5 h-3.5" />
-                                                                )}
-                                                                {intl.formatMessage({ id: 'reportDownloadShort' })}
-                                                            </button>
-                                                        )}
+                                            <td colSpan={TABLE_COLUMNS} className="px-4 py-8 text-center text-kanri-third dark:text-gray-400">
+                                                {filtersActive ? (
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <p>{intl.formatMessage({ id: 'filterNoMatch' })}</p>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => applyFilters(clearedFilters(filters))}
+                                                            className="px-3.5 py-2 rounded-xl border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white text-xs font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700"
+                                                        >
+                                                            {intl.formatMessage({ id: 'filterClearFilters' })}
+                                                        </button>
                                                     </div>
                                                 ) : (
-                                                    <span
-                                                        title={intl.formatMessage({ id: 'reportNoReportYet' })}
-                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-neutral-300 dark:border-gray-700 text-kanri-third dark:text-gray-500 text-xs"
-                                                    >
-                                                        <Download className="w-3.5 h-3.5" />
-                                                        {intl.formatMessage({ id: 'reportNoReportYetShort' })}
-                                                    </span>
+                                                    intl.formatMessage({ id: 'reportEmpty' })
                                                 )}
                                             </td>
                                         </tr>
-                                    ))}
+                                    )}
+                                    {items.map((item) => {
+                                        const percent = completionPercent(item);
+                                        const canOpen = item.can_open ?? item.status !== 'draft';
+                                        return (
+                                            <tr key={item.report_id || item.student_id} className="border-t border-[#E4E9EE] dark:border-gray-700/60">
+                                                <td className="px-4 py-3 font-medium text-[#122B31] dark:text-white">{item.student_name}</td>
+                                                <td className="px-3 py-3 text-kanri-third dark:text-gray-300">{item.student_code}</td>
+                                                <td className="px-3 py-3 text-[#122B31] dark:text-white">{item.title || '—'}</td>
+                                                <td className="px-3 py-3 text-xs text-kanri-third dark:text-gray-300">{reportTypeLabel(item.report_type, intl)}</td>
+                                                <td className="px-3 py-3"><StatusBadge status={item.status} /></td>
+                                                <td className="px-3 py-3 text-[#122B31] dark:text-white">{formatHours(item.total_minutes)}</td>
+                                                <td className="px-3 py-3">
+                                                    {item.report_id ? (
+                                                        <div
+                                                            className="flex items-center gap-2"
+                                                            title={`${item.filled_days ?? 0}/${completionDenominator(item)}`}
+                                                        >
+                                                            <div className="h-1.5 w-14 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full bg-[#122B31] dark:bg-white"
+                                                                    style={{ width: `${percent}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs tabular-nums text-[#122B31] dark:text-white">{percent}%</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-kanri-third dark:text-gray-500">—</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    {item.report_id ? (
+                                                        <div className="inline-flex items-center gap-3">
+                                                            {/* can_open=false (draft): detail va Excel 403 REPORT_DRAFT_HIDDEN qaytaradi, ikkala tugma yashirin. */}
+                                                            {!canOpen && (
+                                                                <span
+                                                                    title={intl.formatMessage({ id: 'reportDraftHidden' })}
+                                                                    className="text-kanri-third dark:text-gray-500"
+                                                                >
+                                                                    —
+                                                                </span>
+                                                            )}
+                                                            {canOpen && (
+                                                                <Link
+                                                                    href={{
+                                                                        pathname: '/dashboard/student-reports/[id]',
+                                                                        query: { id: item.report_id, year, month },
+                                                                    }}
+                                                                    title={intl.formatMessage({ id: 'reportOpenTitle' })}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700"
+                                                                >
+                                                                    {intl.formatMessage({ id: 'reportOpen' })}
+                                                                </Link>
+                                                            )}
+                                                            {isAdmin && canOpen && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => download(item)}
+                                                                    disabled={downloadingId === item.report_id}
+                                                                    title={intl.formatMessage({ id: 'reportDownloadTitle' })}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white font-semibold hover:bg-neutral-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                                                                >
+                                                                    {downloadingId === item.report_id ? (
+                                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                                    ) : (
+                                                                        <Download className="w-3.5 h-3.5" />
+                                                                    )}
+                                                                    {intl.formatMessage({ id: 'reportDownloadShort' })}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span
+                                                            title={intl.formatMessage({ id: 'reportNoReportYet' })}
+                                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-dashed border-neutral-300 dark:border-gray-700 text-kanri-third dark:text-gray-500 text-xs"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5" />
+                                                            {intl.formatMessage({ id: 'reportNoReportYetShort' })}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
-                        {items.length > 0 && (
+                        {totalRows > 0 && (
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-[#E4E9EE] dark:border-gray-700/60">
                                 <p className="text-xs text-kanri-third dark:text-gray-400">
                                     {intl.formatMessage(
-                                        { id: 'paginationTotalStudents' },
-                                        { total: items.length, page: safePage, totalPages },
+                                        { id: 'reportPaginationSummary' },
+                                        { total: totalRows, students: totalStudents, page, totalPages },
                                     )}
                                 </p>
                                 {totalPages > 1 && (
                                     <div className="flex items-center gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => goToPage(safePage - 1)}
-                                            disabled={safePage <= 1}
+                                            onClick={() => goToPage(page - 1)}
+                                            disabled={page <= 1}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white disabled:opacity-40"
                                         >
                                             <ChevronLeft className="w-3.5 h-3.5" />
                                             {intl.formatMessage({ id: 'paginationPrev' })}
                                         </button>
                                         <div className="flex items-center gap-1">
-                                            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                                                <button
-                                                    key={pageNumber}
-                                                    type="button"
-                                                    onClick={() => goToPage(pageNumber)}
-                                                    className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold ${
-                                                        pageNumber === safePage
-                                                            ? 'bg-[#122B31] text-white dark:bg-white dark:text-[#122B31]'
-                                                            : 'bg-gray-50 dark:bg-gray-700 text-[#122B31] dark:text-gray-200'
-                                                    }`}
-                                                >
-                                                    {pageNumber}
-                                                </button>
-                                            ))}
+                                            {pageRange.map((pageNumber, index) =>
+                                                pageNumber === '...' ? (
+                                                    <span key={`dots-${index}`} className="px-1 text-xs text-kanri-third dark:text-gray-400">…</span>
+                                                ) : (
+                                                    <button
+                                                        key={pageNumber}
+                                                        type="button"
+                                                        onClick={() => goToPage(pageNumber)}
+                                                        className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold ${
+                                                            pageNumber === page
+                                                                ? 'bg-[#122B31] text-white dark:bg-white dark:text-[#122B31]'
+                                                                : 'bg-gray-50 dark:bg-gray-700 text-[#122B31] dark:text-gray-200'
+                                                        }`}
+                                                    >
+                                                        {pageNumber}
+                                                    </button>
+                                                ),
+                                            )}
                                         </div>
                                         <button
                                             type="button"
-                                            onClick={() => goToPage(safePage + 1)}
-                                            disabled={safePage >= totalPages}
+                                            onClick={() => goToPage(page + 1)}
+                                            disabled={page >= totalPages}
                                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border border-[#E4E9EE] dark:border-gray-600 bg-white dark:bg-gray-800 text-[#122B31] dark:text-white disabled:opacity-40"
                                         >
                                             {intl.formatMessage({ id: 'paginationNext' })}
